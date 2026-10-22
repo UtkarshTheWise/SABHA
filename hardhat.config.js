@@ -21,6 +21,15 @@ module.exports = {
   // `npx hardhat node` in another terminal, which is what the frontend talks to
   // during development. `besu` and `sepolia` appear once their RPC URL is set.
   networks: hardhatNetworks(),
+  // Verifying source on a public explorer: Blockscout and Sourcify need no
+  // account. Etherscan is used only if you supply a key. Private networks have
+  // no explorer, so `npm run verify` stops there with an explanation.
+  blockscout: { enabled: true },
+  sourcify: { enabled: true },
+  etherscan: {
+    enabled: Boolean(process.env.ETHERSCAN_API_KEY),
+    apiKey: process.env.ETHERSCAN_API_KEY || "",
+  },
   gasReporter: {
     enabled: process.env.REPORT_GAS === "true",
   },

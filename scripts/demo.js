@@ -6,7 +6,10 @@
  *   npx hardhat run scripts/demo.js --network localhost
  */
 const hre = require("hardhat");
+const { resolve: resolveNetwork } = require("../config/networks");
 const { load } = require("./lib/deployments");
+const { ensureFunded } = require("./lib/funding");
+const { estimating } = require("./lib/estimating");
 
 const line = (n) => console.log("\u2500".repeat(n));
 
@@ -68,20 +71,47 @@ async function main() {
   console.log(`  DirectDemocracy  ${await voting.getAddress()}`);
   console.log(`  electorate       ${await registry.activeMemberCount()} active members`);
 
+  // A network that charges for gas needs each transaction to carry its own gas
+  // limit, or Hardhat's fallback asks wallets to hold far more than a vote costs.
+  const known = resolveNetwork(network.name);
+  const charges = Boolean(known && !known.zeroGas);
+  const forSending = (signer) => (charges && signer ? estimating(signer) : signer);
+
   const roster = await registry.roster();
   if (roster.length < 5) {
     throw new Error("Run scripts/seed.js first: this demo needs at least five enrolled members.");
   }
-  const voters = roster.slice(0, 5).map((address) => signers.find((s) => s.address === address));
-  if (voters.some((v) => v === undefined)) {
+  const found = roster.slice(0, 5).map((address) => signers.find((s) => s.address === address));
+  if (found.some((v) => v === undefined)) {
     throw new Error("The enrolled members are not signers on this node. Re-run scripts/seed.js.");
   }
-  const outsider = signers.find((s) => !roster.includes(s.address) && s.address !== admin.address);
+  const voters = found.map(forSending);
+  const outsider = forSending(signers.find((s) => !roster.includes(s.address) && s.address !== admin.address));
+
+  // --- funding (public testnets only) -----------------------------------------
+  // Where gas is free, or every account already holds plenty, this does nothing.
+  if (charges) {
+    const funded = await ensureFunded(ethers, admin, voters, {
+      minimum: ethers.parseEther("0.003"),
+      amount: ethers.parseEther("0.005"),
+    });
+    if (funded.length > 0) {
+      step("0+", "The deployer tops up the voters' wallets, since a public testnet charges for gas");
+      for (const { address, receipt } of funded) {
+        console.log(`  ${address}`);
+        console.log(`    tx ${receipt.hash}  block ${receipt.blockNumber}  gas ${receipt.gasUsed}`);
+      }
+    }
+  }
 
   // --- 1 ------------------------------------------------------------------
+  // The window must outlast the votes. Five votes take seconds on a local node
+  // and a minute or two on a public testnet, so the default is generous; CI sets
+  // it lower.
+  const WINDOW = Number(process.env.DEMO_WINDOW_SECONDS || 300);
   const now = (await ethers.provider.getBlock("latest")).timestamp;
   const opensAt = now + 2;
-  const closesAt = now + 300;
+  const closesAt = now + WINDOW;
 
   step(1, "An officer opens a question through the proposal registry");
   console.log(`  proposer   ${admin.address}`);
@@ -130,7 +160,7 @@ async function main() {
   console.log("\n  Checks the contract refuses to skip:");
   await expectRejection("the same member votes twice", voting.connect(voters[0]).castVote(id, 1));
   await expectRejection("a wallet that is not on the roster votes", voting.connect(outsider).castVote(id, 0));
-  const spare = signers.find((s) => roster.slice(voters.length).includes(s.address));
+  const spare = forSending(signers.find((s) => roster.slice(voters.length).includes(s.address)));
   await expectRejection("a member picks an option that does not exist", voting.connect(spare).castVote(id, 9));
 
   // --- 6 and 7 ------------------------------------------------------------
@@ -143,7 +173,7 @@ async function main() {
 
   // --- 8 ------------------------------------------------------------------
   step(8, "The window closes and the tally is published on chain");
-  const travelled = await timeTravel(ethers.provider, 400);
+  const travelled = await timeTravel(ethers.provider, WINDOW + 100);
   if (!travelled) {
     console.log("  This chain has no time-travel RPC. Waiting for the window to close in real time.");
     while ((await ethers.provider.getBlock("latest")).timestamp < closesAt) {

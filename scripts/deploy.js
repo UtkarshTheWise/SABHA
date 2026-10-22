@@ -14,7 +14,18 @@ async function main() {
 
   console.log(`network      ${network.name} (chainId ${chainId})`);
   console.log(`admin        ${admin.address}`);
-  console.log(`balance      ${ethers.formatEther(await ethers.provider.getBalance(admin.address))} ETH\n`);
+  const balance = await ethers.provider.getBalance(admin.address);
+  console.log(`balance      ${ethers.formatEther(balance)} ETH\n`);
+
+  // A network that charges for gas fails with an opaque "insufficient funds"
+  // halfway through. Say what to do before sending anything.
+  const known = resolveNetwork(network.name);
+  if (known && !known.zeroGas && balance === 0n) {
+    throw new Error(
+      `${admin.address} has no ether on ${known.label}, so it cannot pay to deploy.\n` +
+        `Send it some from a faucet (a deployment plus the demo needs roughly 0.05), then run this again.`
+    );
+  }
 
   const registry = await ethers.deployContract("MemberRegistry", [admin.address]);
   await registry.waitForDeployment();

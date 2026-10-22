@@ -15,7 +15,9 @@
     "demo:besu": "node scripts/hh.js demo --network besu",
     "frontend": "npm --prefix frontend run dev",
     "check:sizes": "node scripts/check-sizes.js",
-    "publish:frontend": "hardhat run scripts/publish-frontend.js"
+    "publish:frontend": "hardhat run scripts/publish-frontend.js",
+    "verify": "node scripts/hh.js verify",
+    "keys": "node scripts/gen-keys.js"
   },
   "keywords": [],
   "author": "",

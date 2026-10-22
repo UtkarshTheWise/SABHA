@@ -16,6 +16,7 @@ const TASKS = {
   deploy: "scripts/deploy.js",
   seed: "scripts/seed.js",
   demo: "scripts/demo.js",
+  verify: "scripts/verify.js",
 };
 
 const [task, ...rest] = process.argv.slice(2);
