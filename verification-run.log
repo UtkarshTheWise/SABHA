@@ -1,0 +1,173 @@
+
+────────────────────────────────────────────────────────────────────────
+STEP 0  Network and contracts
+────────────────────────────────────────────────────────────────────────
+  chain id         31337
+  rpc              http://127.0.0.1:8545
+  block height     30
+  MemberRegistry   0x5FbDB2315678afecb367f032d93F642f64180aa3
+  DirectDemocracy  0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512
+  electorate       8 active members
+
+────────────────────────────────────────────────────────────────────────
+STEP 1  An officer opens a question through the proposal registry
+────────────────────────────────────────────────────────────────────────
+  proposer   0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+  window     opens 2026-09-15T02:51:57.000Z  closes 2026-09-15T02:56:55.000Z
+  createProposal
+    tx 0xf0ae7d9e559e108a228638e825cb41ec4a279d4deea55e628b85185bb335453b
+    block 31   gas 381570   status confirmed
+
+────────────────────────────────────────────────────────────────────────
+STEP 2  The proposal is readable from the ledger by anyone on the network
+────────────────────────────────────────────────────────────────────────
+  id 5   "Should the society publish its accounts every term?"
+  options    Publish every term | Keep the annual cycle | Abstain
+  electorate 8 snapshotted at creation
+  quorum     60% of the electorate
+  state      Active
+
+────────────────────────────────────────────────────────────────────────
+STEP 3  The identity layer decides who may vote
+────────────────────────────────────────────────────────────────────────
+  0x70997970C51812dc3A010C7d01b50e0d17dc79C8  active member: true
+  0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC  active member: true
+  0xa0Ee7A142d267C1f36714E4a8F75612F20a79720  active member: false
+
+────────────────────────────────────────────────────────────────────────
+STEP 4+5  Members submit signed votes; the contract runs its three checks
+────────────────────────────────────────────────────────────────────────
+  0x70997970C51812dc3A010C7d01b50e0d17dc79C8 votes "Publish every term"
+    tx 0xc2eb15f1eda525d1b47a4b6d1d3dd29583d71b16fb895f038ed04125131a199b
+    block 33   gas 106302   status confirmed
+  0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC votes "Publish every term"
+    tx 0x07f089c739fb4d783b6de933c2d13819351e2a3682e06ff5ace84c1002e04c7d
+    block 34   gas 72102   status confirmed
+  0x90F79bf6EB2c4f870365E785982E1f101E93b906 votes "Keep the annual cycle"
+    tx 0xc66b2d7251795219ec5f01680f7439915aadc3060188a27f9e1745baa77120b2
+    block 35   gas 89214   status confirmed
+  0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 votes "Publish every term"
+    tx 0x29b42919885b15f0e5a28ddef64ddd8e55189bae0878739c241348fd522a4ab8
+    block 36   gas 72102   status confirmed
+  0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc votes "Abstain"
+    tx 0x77d21a298d4b9b072c9104b55e7e362f29571b9f980140b6757ec24637778ede
+    block 37   gas 89214   status confirmed
+
+  Checks the contract refuses to skip:
+  the same member votes twice
+    rejected: Error: VM Exception while processing transaction: reverted with custom error 'AlreadyVoted(5, "0x70997970C51812dc3A010C7d01b50e0d17dc79C8")'
+  a wallet that is not on the roster votes
+    rejected: Error: VM Exception while processing transaction: reverted with custom error 'NotAMember("0xa0Ee7A142d267C1f36714E4a8F75612F20a79720")'
+  a member picks an option that does not exist
+    rejected: Error: VM Exception while processing transaction: reverted with custom error 'UnknownOption(5, 9)'
+
+────────────────────────────────────────────────────────────────────────
+STEP 6+7  Votes are committed to blocks and are independently verifiable
+────────────────────────────────────────────────────────────────────────
+  receipt for 0x70997970C51812dc3A010C7d01b50e0d17dc79C8
+    option 0 "Publish every term"  recorded in block 33
+    digest 0x9fc130ad2605bbe2e7cd29de88a4e6bc7f4c67b9ee5ba6a8ccf8f53aeb8573ca
+  running tally  3 / 1 / 1
+
+────────────────────────────────────────────────────────────────────────
+STEP 8  The window closes and the tally is published on chain
+────────────────────────────────────────────────────────────────────────
+  finaliseProposal (called by a member, not an officer)
+    tx 0x6044cae373723fabff13ffc042a89229f6d6b39bd678e872b987b04b8731ec21
+    block 42   gas 46584   status confirmed
+
+  turnout      5 of 8
+  quorum met   true
+  tied         false
+  outcome      "Publish every term"
+  tally        Publish every term: 3, Keep the annual cycle: 1, Abstain: 1
+
+────────────────────────────────────────────────────────────────────────
+STEP 9  An auditor rebuilds the same result from event logs alone
+────────────────────────────────────────────────────────────────────────
+  block 33  0x70997970C51812dc3A010C7d01b50e0d17dc79C8  option 0
+  block 34  0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC  option 0
+  block 35  0x90F79bf6EB2c4f870365E785982E1f101E93b906  option 1
+  block 36  0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65  option 0
+  block 37  0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc  option 2
+
+  rebuilt from logs  3 / 1 / 1
+  contract tally     3 / 1 / 1
+  independent recount agrees: true
+
+────────────────────────────────────────────────────────────────────────
+Demonstration finished at block 42.
+────────────────────────────────────────────────────────────────────────
+
+
+  DirectDemocracy
+    creating a proposal
+      ✔ registers the proposal and snapshots the electorate (548ms)
+      ✔ refuses a proposer without the role
+      ✔ refuses a window that closes before it opens
+      ✔ refuses a window that has already closed
+      ✔ refuses fewer than two options
+      ✔ refuses more than sixteen options
+      ✔ refuses an empty title
+      ✔ refuses a quorum above 100 percent
+      ✔ refuses a proposal when nobody is enrolled
+    the voting window
+      ✔ moves Pending to Active to Closed as time passes
+      ✔ refuses a vote before the window opens
+      ✔ refuses a vote after the window closes
+    casting a vote
+      ✔ records the vote, the tally and the receipt
+      ✔ refuses a second vote from the same wallet
+      ✔ refuses a wallet that is not on the roster
+      ✔ refuses a member suspended after the proposal opened
+      ✔ refuses an option index that does not exist
+      ✔ refuses a vote on a proposal that was never created
+      ✔ counts four members voting three different ways
+      ✔ issues a receipt hash that binds contract, chain, proposal and voter
+    finalising
+      ✔ publishes the winner once the window has closed
+      ✔ lets any member, not only an officer, trigger the tally
+      ✔ flags a tie
+      ✔ flags a result that missed quorum
+      ✔ treats a turnout exactly on the quorum line as met
+      ✔ handles a proposal nobody voted on
+      ✔ refuses to finalise while voting is still open
+      ✔ refuses a second finalisation
+      ✔ freezes the tally after finalisation
+    cancelling
+      ✔ lets the admin withdraw a proposal before voting opens
+      ✔ refuses to withdraw once voting has opened
+      ✔ refuses to tally a withdrawn proposal
+      ✔ refuses a cancellation from a non-admin
+    reading the ledger
+      ✔ pages proposals newest first
+      ✔ returns an empty page past the end
+      ✔ rejects a read of a proposal that does not exist
+      ✔ lets an auditor rebuild the tally from VoteCast events alone
+
+  MemberRegistry
+    deployment
+      ✔ gives the admin both the admin and registrar roles
+      ✔ starts with an empty roster
+    enrolment
+      ✔ enrols a member and emits the event
+      ✔ stores the identifier as a hash, never the raw value
+      ✔ refuses a second enrolment of the same wallet
+      ✔ refuses two wallets claiming the same identifier
+      ✔ refuses an empty identifier
+      ✔ refuses enrolment from an account without the registrar role
+      ✔ enrols a batch in one transaction
+      ✔ rejects a batch with mismatched array lengths
+    suspension
+      ✔ suspends a member and shrinks the electorate
+      ✔ reinstates a suspended member
+      ✔ refuses to suspend somebody who was never enrolled
+      ✔ refuses a double suspension
+      ✔ refuses to reinstate an active member
+    role delegation
+      ✔ lets the admin appoint another registrar
+      ✔ stops a revoked registrar from enrolling
+
+
+  54 passing (935ms)
+

@@ -1,0 +1,106 @@
+# Four validators running QBFT consensus. With four nodes the network tolerates
+# one faulty or dishonest validator: QBFT needs 2f+1 of 3f+1, so f = 1.
+#
+# Only node1 publishes its RPC port to the host. The other three are reachable
+# from inside the compose network, which is the point: a member talks to one
+# node, and that node has to convince the others before anything is committed.
+
+services:
+  node1:
+    image: hyperledger/besu:24.12.2
+    container_name: sabha-node1
+    volumes:
+      - ./genesis.json:/config/genesis.json:ro
+      - ./nodes/node1:/data
+    command:
+      - --genesis-file=/config/genesis.json
+      - --data-path=/data
+      - --node-private-key-file=/data/key
+      - --p2p-host=172.28.0.11
+      - --p2p-port=30303
+      - --min-gas-price=0
+      - --rpc-http-enabled
+      - --rpc-http-host=0.0.0.0
+      - --rpc-http-port=8545
+      - --rpc-http-api=ETH,NET,WEB3,QBFT,ADMIN,TXPOOL
+      - --rpc-http-cors-origins=all
+      - --host-allowlist=*
+    ports:
+      - "8545:8545"
+      - "30303:30303"
+    networks:
+      qbft:
+        ipv4_address: 172.28.0.11
+
+  node2:
+    image: hyperledger/besu:24.12.2
+    container_name: sabha-node2
+    volumes:
+      - ./genesis.json:/config/genesis.json:ro
+      - ./nodes/node2:/data
+    command:
+      - --genesis-file=/config/genesis.json
+      - --data-path=/data
+      - --node-private-key-file=/data/key
+      - --p2p-host=172.28.0.12
+      - --p2p-port=30303
+      - --min-gas-price=0
+      - --rpc-http-enabled
+      - --rpc-http-host=0.0.0.0
+      - --rpc-http-port=8545
+      - --rpc-http-api=ETH,NET,WEB3,QBFT
+      - --host-allowlist=*
+    networks:
+      qbft:
+        ipv4_address: 172.28.0.12
+
+  node3:
+    image: hyperledger/besu:24.12.2
+    container_name: sabha-node3
+    volumes:
+      - ./genesis.json:/config/genesis.json:ro
+      - ./nodes/node3:/data
+    command:
+      - --genesis-file=/config/genesis.json
+      - --data-path=/data
+      - --node-private-key-file=/data/key
+      - --p2p-host=172.28.0.13
+      - --p2p-port=30303
+      - --min-gas-price=0
+      - --rpc-http-enabled
+      - --rpc-http-host=0.0.0.0
+      - --rpc-http-port=8545
+      - --rpc-http-api=ETH,NET,WEB3,QBFT
+      - --host-allowlist=*
+    networks:
+      qbft:
+        ipv4_address: 172.28.0.13
+
+  node4:
+    image: hyperledger/besu:24.12.2
+    container_name: sabha-node4
+    volumes:
+      - ./genesis.json:/config/genesis.json:ro
+      - ./nodes/node4:/data
+    command:
+      - --genesis-file=/config/genesis.json
+      - --data-path=/data
+      - --node-private-key-file=/data/key
+      - --p2p-host=172.28.0.14
+      - --p2p-port=30303
+      - --min-gas-price=0
+      - --rpc-http-enabled
+      - --rpc-http-host=0.0.0.0
+      - --rpc-http-port=8545
+      - --rpc-http-api=ETH,NET,WEB3,QBFT
+      - --host-allowlist=*
+    networks:
+      qbft:
+        ipv4_address: 172.28.0.14
+
+networks:
+  qbft:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

@@ -1,0 +1,26 @@
+{
+  "name": "sabha-direct-democracy",
+  "version": "0.1.0",
+  "description": "Permissioned blockchain voting for small organisations",
+  "scripts": {
+    "test": "hardhat test",
+    "test:gas": "REPORT_GAS=true hardhat test",
+    "compile": "hardhat compile",
+    "node": "hardhat node",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "seed": "hardhat run scripts/seed.js --network localhost",
+    "demo": "hardhat run scripts/demo.js --network localhost",
+    "deploy:besu": "hardhat run scripts/deploy.js --network besu",
+    "seed:besu": "hardhat run scripts/seed.js --network besu",
+    "demo:besu": "hardhat run scripts/demo.js --network besu",
+    "frontend": "npm --prefix frontend run dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^6.1.2",
+    "@openzeppelin/contracts": "^5.6.1",
+    "hardhat": "^2.29.1"
+  }
+}

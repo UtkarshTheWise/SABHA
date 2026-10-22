@@ -1,0 +1,16 @@
+node_modules/
+artifacts/
+cache/
+frontend/dist/
+besu/networkFiles/
+besu/nodes/
+besu/genesis.json
+besu/static-nodes.json
+.env
+.env.*
+!.env.example
+!*.env.example
+frontend/.env
+frontend/.env.local
+besu/.env
+besu/permissions_config.toml
