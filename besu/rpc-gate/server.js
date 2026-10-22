@@ -13,12 +13,14 @@
  */
 const { createGate, parseOrigins, DEFAULTS } = require("./gate");
 
-const number = (name, fallback) => {
+// Zero is a real answer for some settings (TRUSTED_HOPS=0: nothing sits in front
+// of the gate, so the socket address is the client) and nonsense for others.
+const number = (name, fallback, { allowZero = false } = {}) => {
   const raw = process.env[name];
   if (raw === undefined || raw === "") return fallback;
   const value = Number(raw);
-  if (!Number.isFinite(value) || value <= 0) {
-    console.error(`${name} must be a positive number, got "${raw}".`);
+  if (!Number.isFinite(value) || value < 0 || (value === 0 && !allowZero)) {
+    console.error(`${name} must be ${allowZero ? "zero or a positive" : "a positive"} number, got "${raw}".`);
     process.exit(1);
   }
   return value;
@@ -41,7 +43,7 @@ if (allowedOrigins.length === 0) {
 const server = createGate({
   allowedOrigins,
   upstream: process.env.UPSTREAM_URL || DEFAULTS.upstream,
-  trustedHops: number("TRUSTED_HOPS", DEFAULTS.trustedHops),
+  trustedHops: number("TRUSTED_HOPS", DEFAULTS.trustedHops, { allowZero: true }),
   maxBatch: number("MAX_BATCH", DEFAULTS.maxBatch),
   readBucket: { capacity: Math.ceil(readRate * 3), refillPerSecond: readRate },
   writeBucket: { capacity: Math.ceil(writeRate * 20), refillPerSecond: writeRate },

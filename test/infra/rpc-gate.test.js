@@ -36,8 +36,22 @@ function startUpstream({ delayMs = 0 } = {}) {
   );
 }
 
-const listen = (server) =>
-  new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve(`http://127.0.0.1:${server.address().port}`)));
+// fetch() refuses to talk to these ports (the WHATWG "bad ports" list, kept so a
+// web page cannot be turned on services like IRC or X11). A random port can land
+// on one, which showed up as a different test failing "fetch failed: bad port"
+// once in a few dozen runs. Pick again if that happens.
+const FETCH_BLOCKED = new Set(
+  [1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101, 102, 103, 104, 109, 110, 111, 113, 115, 117, 119, 123, 135, 137, 139, 143, 161, 179, 389, 427, 465, 512, 513, 514, 515, 526, 530, 531, 532, 540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993, 995, 1719, 1720, 1723, 2049, 3659, 4045, 4190, 5060, 5061, 6000, 6566, 6665, 6666, 6667, 6668, 6669, 6679, 6697, 10080]
+);
+
+async function listen(server) {
+  for (;;) {
+    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const { port } = server.address();
+    if (!FETCH_BLOCKED.has(port)) return `http://127.0.0.1:${port}`;
+    await new Promise((resolve) => server.close(resolve));
+  }
+}
 const close = (server) => new Promise((resolve) => server.close(resolve));
 
 const call = (method, params = [], id = 1) => ({ jsonrpc: "2.0", id, method, params });
@@ -492,6 +506,84 @@ describe("RPC gate", function () {
       expect(clientAddress(req(undefined), 1)).to.equal("172.18.0.5");
       expect(clientAddress(req("203.0.113.9"), 0)).to.equal("172.18.0.5");
       expect(clientAddress(req("203.0.113.9"), 2)).to.equal("172.18.0.5");
+    });
+  });
+
+  describe("starting from the command line", function () {
+    const { spawn } = require("node:child_process");
+    const net = require("node:net");
+    const SERVER = require("node:path").join(__dirname, "..", "..", "besu", "rpc-gate", "server.js");
+
+    const freePort = () =>
+      new Promise((resolve) => {
+        const probe = net.createServer().listen(0, "127.0.0.1", () => {
+          const { port } = probe.address();
+          probe.close(() => resolve(port));
+        });
+      });
+
+    // Runs server.js with the given environment. Resolves with whether it
+    // stayed up, what it printed, and its exit code if it quit.
+    function launch(env, { stayUpMs = 700 } = {}) {
+      return new Promise((resolve) => {
+        const child = spawn(process.execPath, [SERVER], {
+          env: { PATH: process.env.PATH, UPSTREAM_URL: "http://127.0.0.1:1", ...env },
+        });
+        let output = "";
+        child.stdout.on("data", (d) => (output += d));
+        child.stderr.on("data", (d) => (output += d));
+        let killedByTest = false;
+        const timer = setTimeout(() => {
+          killedByTest = true;
+          child.kill();
+        }, stayUpMs);
+        child.once("exit", (code) => {
+          clearTimeout(timer);
+          // Still running when the test ended it counts as having started.
+          resolve(killedByTest ? { up: true, output } : { up: false, code, output });
+        });
+      });
+    }
+
+    it("starts with sensible settings", async function () {
+      const run = await launch({ PORT: String(await freePort()), FRONTEND_ORIGINS: "https://sabha.vercel.app" });
+      expect(run.up, run.output).to.equal(true);
+      expect(run.output).to.include('"event":"listening"');
+    });
+
+    it("accepts TRUSTED_HOPS=0, which means nothing is in front of it", async function () {
+      const run = await launch({ PORT: String(await freePort()), TRUSTED_HOPS: "0", FRONTEND_ORIGINS: "https://sabha.vercel.app" });
+      expect(run.up, run.output).to.equal(true);
+    });
+
+    it("refuses settings that make no sense, and says which", async function () {
+      const port = String(await freePort());
+      for (const [env, message] of [
+        [{ TRUSTED_HOPS: "-1" }, /TRUSTED_HOPS must be zero or a positive number/],
+        [{ TRUSTED_HOPS: "abc" }, /TRUSTED_HOPS/],
+        [{ READ_RATE: "0" }, /READ_RATE must be a positive number/],
+        [{ WRITE_RATE: "-5" }, /WRITE_RATE/],
+        [{ MAX_BATCH: "0" }, /MAX_BATCH/],
+        [{ PORT: "0" }, /PORT must be a positive number/],
+      ]) {
+        const run = await launch({ PORT: port, ...env });
+        expect(run.up, JSON.stringify(env)).to.equal(false);
+        expect(run.code, JSON.stringify(env)).to.equal(1);
+        expect(run.output, JSON.stringify(env)).to.match(message);
+      }
+    });
+
+    it("refuses to start with an over-broad origin pattern", async function () {
+      const run = await launch({ PORT: String(await freePort()), FRONTEND_ORIGINS: "https://sabha.vercel.app https://*.vercel.app" });
+      expect(run.up).to.equal(false);
+      expect(run.code).to.equal(1);
+      expect(run.output).to.match(/Invalid origin pattern "https:\/\/\*\.vercel\.app"/);
+    });
+
+    it("warns, but runs, when no origin is listed", async function () {
+      const run = await launch({ PORT: String(await freePort()) });
+      expect(run.up, run.output).to.equal(true);
+      expect(run.output).to.match(/FRONTEND_ORIGINS is empty/);
     });
   });
 
