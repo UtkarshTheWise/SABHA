@@ -27,7 +27,7 @@ deployments/        addresses and transaction hashes, written by deploy.js
 
 ## Running it
 
-You need Node 18 or newer. Docker only if you want the four-node network.
+You need Node 22 or newer (the tests run on 22 and 24; older releases are past end of life). Docker only if you want the four-node network.
 
 ```bash
 npm install

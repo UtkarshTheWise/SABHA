@@ -1,0 +1,196 @@
+name: CI
+
+# Three jobs.
+#   contracts     compile, size check, tests, and the nine-step demo on an in-process
+#                 chain. Fast; runs on every push and pull request.
+#   frontend      builds the dashboard and checks nothing private reaches the bundle.
+#   besu-smoke    boots the real four-validator network in Docker, runs the demo and
+#                 the health check against it, takes a backup. Slow; runs on pushes to
+#                 main and on demand, because it needs Docker and a few minutes.
+#
+# Pull-request previews of the frontend come from the hosting provider's own Git
+# integration (Vercel or Netlify), not from this file.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  contracts:
+    name: contracts (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - run: npm ci
+      - run: npm run compile
+
+      - name: Contracts fit on every chain we run on
+        run: npm run check:sizes
+
+      - name: The ABIs committed for the frontend are the ones just compiled
+        run: |
+          npm run publish:frontend
+          git diff --exit-code -- frontend/src/chain/abi
+
+      - run: npm test
+
+      - name: The nine-step demo, on an in-process chain
+        run: npm run demo:ci
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - run: npm ci
+        working-directory: frontend
+
+      - run: npm run build
+        working-directory: frontend
+
+      # directory.json maps names to registration numbers and exists only on a
+      # developer's machine. Plant one with a recognisable string and prove that
+      # a production build leaves it out, whoever builds it.
+      - name: A production build never contains the local register of names
+        working-directory: frontend
+        run: |
+          echo '[{"name":"CANARY-NAME-7f3a","identifier":"CANARY-ID-7f3a","address":"0x0000000000000000000000000000000000000001"}]' > src/chain/directory.json
+          npm run build
+          if grep -rq 'CANARY-' dist; then
+            echo "The local register of names reached the production bundle." >&2
+            exit 1
+          fi
+          rm src/chain/directory.json
+
+  besu-smoke:
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BESU_RPC_URL: http://127.0.0.1:8545
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate the network
+        working-directory: besu
+        run: |
+          cp .env.example .env
+          SABHA_CONFIRM_RESET=yes ./setup.sh
+
+      # Compose and the Caddyfile are only ever parsed by the tools themselves
+      # here, so parse them with the exact versions the deployment pins.
+      - name: Compose file and Caddyfile are valid
+        working-directory: besu
+        run: |
+          set -a; . ./.env; set +a
+          docker compose --profile public config --quiet
+          docker run --rm \
+            -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            -e RPC_DOMAIN=rpc.example.org -e GATE_UPSTREAM=rpc-gate:8080 \
+            "caddy:${CADDY_VERSION}-alpine" caddy validate --config /etc/caddy/Caddyfile
+
+      - name: The gate image builds
+        working-directory: besu
+        run: docker compose --profile public build rpc-gate
+
+      # The validators run as an unprivileged user inside the image. Find out
+      # which, rather than assume, and give them the data directories.
+      - name: Let the validators write their data directories
+        working-directory: besu
+        run: |
+          set -a; . ./.env; set +a
+          IMAGE="hyperledger/besu:${BESU_VERSION}"
+          BESU_UID="$(docker run --rm --entrypoint id "$IMAGE" -u)"
+          BESU_GID="$(docker run --rm --entrypoint id "$IMAGE" -g)"
+          echo "The Besu image runs as uid=$BESU_UID gid=$BESU_GID"
+          sudo chown -R "$BESU_UID:$BESU_GID" nodes
+          ls -ln nodes/node1
+
+      - name: Start the four validators
+        working-directory: besu
+        run: docker compose up -d node1 node2 node3 node4
+
+      # The first block can take up to BESU_EMPTY_BLOCK_SECONDS to appear.
+      - name: Wait until the network is healthy
+        run: |
+          for attempt in $(seq 1 60); do
+            if node besu/check-health.mjs http://127.0.0.1:8545 --admin http://127.0.0.1:8546 > health.txt 2>&1; then
+              cat health.txt; exit 0
+            fi
+            sleep 5
+          done
+          cat health.txt; exit 1
+
+      - name: Deploy, seed and run the nine-step demo on the real network
+        env:
+          DEMO_WINDOW_SECONDS: "60"
+        run: |
+          npm run deploy:besu
+          npm run seed:besu
+          npm run demo:besu
+
+      # The same checks again through the gate, which is what members would reach.
+      - name: The public face refuses what it should, through the gate
+        run: |
+          UPSTREAM_URL=http://127.0.0.1:8545 TRUSTED_HOPS=0 PORT=8700 \
+            FRONTEND_ORIGINS=https://sabha.vercel.app node besu/rpc-gate/server.js &
+          GATE=$!
+          sleep 2
+          node besu/check-health.mjs http://127.0.0.1:8700 --admin http://127.0.0.1:8546
+          kill $GATE
+
+      - name: Back up, one validator at a time, and stay healthy
+        working-directory: besu
+        run: |
+          sudo env "PATH=$PATH" ./backup.sh "$RUNNER_TEMP/backup"
+          ls -l "$RUNNER_TEMP/backup"
+          test "$(ls "$RUNNER_TEMP/backup" | wc -l)" -eq 5
+          node check-health.mjs http://127.0.0.1:8545 --admin http://127.0.0.1:8546
+
+      - name: Logs (on failure)
+        if: failure()
+        working-directory: besu
+        run: docker compose logs --no-color --tail=300 > "$RUNNER_TEMP/besu-logs.txt" || true
+
+      - name: Upload logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: besu-logs
+          path: ${{ runner.temp }}/besu-logs.txt
+          if-no-files-found: ignore
+
+      - name: Tear down
+        if: always()
+        working-directory: besu
+        run: docker compose --profile public down -v || true

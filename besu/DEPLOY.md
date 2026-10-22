@@ -158,10 +158,21 @@ confirmation if a network already exists, and re-running it after real votes
 would throw those votes away.
 
 If a validator stops with a permission error on `/data`, the container's user
-cannot write the directory that `setup.sh` created:
-`sudo chown -R 1000:1000 nodes`, then `docker compose up -d`. (Check
-`docker compose logs node1` for the message; the Besu image runs as an
-unprivileged user, and 1000 is the usual id.)
+cannot write the directory that `setup.sh` created. The Besu image runs as an
+unprivileged user; ask the image which, rather than guess:
+
+```bash
+set -a; . ./.env; set +a
+UID_IN_IMAGE=$(docker run --rm --entrypoint id "hyperledger/besu:$BESU_VERSION" -u)
+GID_IN_IMAGE=$(docker run --rm --entrypoint id "hyperledger/besu:$BESU_VERSION" -g)
+sudo chown -R "$UID_IN_IMAGE:$GID_IN_IMAGE" nodes
+docker compose up -d
+```
+
+(The check that runs this project's tests does the same thing, so a change in the
+image's user shows up there first.) After this the keys belong to that user, not
+to you. If your own user is a different one, `./backup.sh` has to run with
+`sudo` to read them: `sudo env "PATH=$PATH" ./backup.sh /var/backups/sabha`.
 
 ## 6. Check that it is healthy and closed
 
@@ -311,7 +322,7 @@ gone from it. Keep the old backups if anyone might need to audit the old chain.
 | The dashboard shows "cannot reach the node" in a browser but `curl` works | The dashboard's address is not in `FRONTEND_ORIGINS`, so the browser refuses to let the page read the answer. Add it and `docker compose up -d rpc-gate`. |
 | Requests fail with 429 | One address sent too many calls; it recovers within seconds. Members sharing one network (a campus, a mobile carrier's NAT) share one allowance, so if that happens to real users, raise `READ_RATE` for the gate. |
 | `check-health` says blocks are old | If nobody has voted for a while, compare the age with `BESU_EMPTY_BLOCK_SECONDS`. If it is far above that, look at `docker compose ps` and the validators' logs. |
-| A validator exits at once with "permission denied" | See section 5: `sudo chown -R 1000:1000 nodes`. |
+| A validator exits at once with "permission denied" | See section 5: give the data directories to the user the Besu image runs as. |
 | `docker compose` complains a variable is not set | Copy `besu/.env.example` to `besu/.env` and fill it in. |
 
 ## Keep these secret
