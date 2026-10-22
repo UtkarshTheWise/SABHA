@@ -1,8 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+import contentSecurityPolicy from "./vite-plugins/csp.js";
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), contentSecurityPolicy()],
   css: {
     // The app is plain CSS, no PostCSS. Passing an inline config stops Vite
     // walking up the directory tree looking for a postcss.config file, which on

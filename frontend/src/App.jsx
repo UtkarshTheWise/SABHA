@@ -11,7 +11,7 @@ import {
   short,
   walletSigner,
 } from "./lib/chain";
-import { NETWORKS, addToWallet, initialNetwork, isLocalUrl, pollInterval, rememberNetwork } from "./lib/networks";
+import { NETWORKS, addToWallet, initialNetwork, pollInterval, rememberNetwork } from "./lib/networks";
 
 // The demo register of names, written by `npm run seed` for the local node only.
 // It holds registration numbers, so it must never reach a production bundle,
@@ -70,7 +70,10 @@ export default function App() {
 }
 
 function Dashboard({ network, onNetwork }) {
-  const local = isLocalUrl(network.rpcUrl);
+  // Which network this is decides what is allowed, not where its address points:
+  // a hosted network reached through an SSH tunnel or a test rig on this machine
+  // is still a hosted network, and has no unlocked accounts to offer.
+  const local = network.key === "localhost";
   // "read": no signer, for anyone just looking. "wallet": a browser wallet the
   // visitor chose to connect. "node": an unlocked development node, local only.
   // A hosted network starts read-only so nobody is greeted by a wallet prompt.
