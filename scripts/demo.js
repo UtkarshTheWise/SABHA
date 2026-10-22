@@ -8,6 +8,7 @@
 const hre = require("hardhat");
 const { resolve: resolveNetwork } = require("../config/networks");
 const { load } = require("./lib/deployments");
+const { deployContracts, seedChain } = require("./lib/bootstrap");
 const { ensureFunded } = require("./lib/funding");
 const { estimating } = require("./lib/estimating");
 
@@ -54,7 +55,17 @@ async function timeTravel(provider, seconds) {
 
 async function main() {
   const { ethers, network } = hre;
-  const record = load(network.name);
+  // The in-process network starts empty and is gone when this script exits (that
+  // is what CI runs), so deploy and seed inside it first. Every other network
+  // must already have been deployed and seeded with `npm run deploy` and `seed`.
+  let record;
+  if (network.name === "hardhat") {
+    record = await deployContracts(hre, { log: () => {} });
+    await seedChain(hre, record, { log: () => {} });
+    console.log("(in-process chain: deployed and seeded just now)");
+  } else {
+    record = load(network.name);
+  }
   const signers = await ethers.getSigners();
   const admin = signers[0];
 
