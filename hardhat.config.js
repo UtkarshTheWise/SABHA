@@ -10,6 +10,11 @@ module.exports = {
     version: "0.8.26",
     settings: {
       optimizer: { enabled: true, runs: 200 },
+      // The Besu genesis activates London, and Sepolia runs newer forks, so
+      // target the newest EVM that has no PUSH0: it runs on both. Hardhat 2
+      // defaults to this today; pinning it stops a tool upgrade changing it.
+      // scripts/check-sizes.js proves the output obeys it.
+      evmVersion: "paris",
     },
   },
   // `hardhat` is the in-process chain used by `npm test`. `localhost` is

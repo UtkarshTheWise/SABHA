@@ -13,7 +13,8 @@
     "deploy:besu": "node scripts/hh.js deploy --network besu",
     "seed:besu": "node scripts/hh.js seed --network besu",
     "demo:besu": "node scripts/hh.js demo --network besu",
-    "frontend": "npm --prefix frontend run dev"
+    "frontend": "npm --prefix frontend run dev",
+    "check:sizes": "node scripts/check-sizes.js"
   },
   "keywords": [],
   "author": "",
