@@ -295,7 +295,7 @@ describe("RPC gate", function () {
   describe("request size", function () {
     beforeEach(() => boot({ gate: { maxBodyBytes: 2048 } }));
 
-    it("refuses a body over the limit using its declared length, without reading it", async function () {
+    it("refuses a body over the limit from its declared length, buffering none of it", async function () {
       const r = await post(url, call("eth_sendRawTransaction", ["0x" + "ab".repeat(3000)]));
       expect(r.status).to.equal(413);
       expect(r.json.error.code).to.equal(-32600);
@@ -317,6 +317,61 @@ describe("RPC gate", function () {
       });
       expect(status).to.equal(413);
       expect(upstream.seen).to.deep.equal([]);
+    });
+
+    // What a reverse proxy does: announce the size, then keep sending while the
+    // gate has already decided to refuse. Hanging up here shows the proxy's
+    // client a 502 instead of the 413.
+    it("delivers the 413 to a client that is still uploading when it is refused", async function () {
+      const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_sendRawTransaction", params: ["0x" + "ab".repeat(20000)] });
+      const outcome = await new Promise((resolve) => {
+        const req = http.request(
+          url,
+          { method: "POST", headers: { "content-type": "application/json", "content-length": Buffer.byteLength(body) } },
+          (res) => {
+            res.resume();
+            res.on("end", () => resolve({ status: res.statusCode }));
+          }
+        );
+        req.on("error", (error) => resolve({ error: error.code }));
+        let sent = 0;
+        const piece = 2000;
+        (function next() {
+          if (sent >= body.length) return req.end();
+          req.write(body.slice(sent, sent + piece));
+          sent += piece;
+          setTimeout(next, 5);
+        })();
+      });
+      expect(outcome).to.deep.equal({ status: 413 });
+      expect(upstream.seen).to.deep.equal([]);
+    });
+
+    it("stops reading an endless refused upload, and keeps serving others", async function () {
+      await close(gate);
+      gate = createGate({ upstream: upstream.url, log: () => {}, maxBodyBytes: 2048, maxDrainBytes: 16 * 1024 });
+      url = await listen(gate);
+
+      const outcome = await new Promise((resolve) => {
+        const req = http.request(url, { method: "POST", headers: { "content-type": "application/json" } }, (res) => {
+          res.resume();
+          res.on("end", () => resolve({ status: res.statusCode }));
+        });
+        req.on("error", (error) => resolve({ error: error.code }));
+        let writes = 0;
+        (function next() {
+          if (writes++ > 400) return req.end();
+          if (!req.write("x".repeat(1024))) return req.once("drain", next);
+          setImmediate(next);
+        })();
+      });
+      // Either the 413 got through before the cut-off, or the connection was cut:
+      // what must not happen is the upload being accepted.
+      expect(outcome.status === 413 || outcome.error !== undefined, JSON.stringify(outcome)).to.equal(true);
+
+      const next = await post(url, call("eth_blockNumber"));
+      expect(next.status).to.equal(200);
+      expect(upstream.seen.map((c) => c.method)).to.deep.equal(["eth_blockNumber"]);
     });
 
     it("accepts a body just under the limit", async function () {

@@ -55,6 +55,7 @@ const WRITE_METHODS = new Set(["eth_sendRawTransaction"]);
 const DEFAULTS = {
   upstream: "http://node1:8545",
   maxBodyBytes: 256 * 1024, // a 24 KB contract is ~100 KB of hex inside a transaction
+  maxDrainBytes: 1024 * 1024, // how much of a refused body is read and discarded before hanging up
   maxBatch: 20, // matches rpc-http-max-batch-size in besu/config.toml
   upstreamTimeoutMs: 10_000,
   maxInFlight: 32, // Besu refuses beyond 80 connections; stay well under
@@ -285,18 +286,29 @@ function createGate(options = {}) {
     res.end(text);
   }
 
+  /**
+   * Reads the body, buffering at most maxBodyBytes of it.
+   *
+   * A request over the limit is refused as soon as that is known, but its body
+   * keeps being read and thrown away, up to maxDrainBytes. Hanging up at once
+   * looks tidy and goes wrong behind a proxy: the proxy is still sending, sees
+   * the connection reset, and tells the client 502 instead of delivering our
+   * 413. Past maxDrainBytes the connection is cut, so this cannot be used to
+   * tie the gate up with an endless upload (requestTimeout bounds it too).
+   */
   function readBody(req) {
     return new Promise((resolve, reject) => {
       const tooLarge = () => Object.assign(new Error("too large"), { tooLarge: true });
       const declared = Number(req.headers["content-length"]);
-      if (Number.isFinite(declared) && declared > config.maxBodyBytes) return reject(tooLarge());
+      let refused = Number.isFinite(declared) && declared > config.maxBodyBytes;
+      if (refused) reject(tooLarge());
 
       const chunks = [];
       let size = 0;
-      let refused = false;
       req.on("data", (chunk) => {
-        if (refused) return; // keep draining, buffer nothing
         size += chunk.length;
+        if (size > config.maxDrainBytes) return void req.destroy();
+        if (refused) return; // keep reading, buffer nothing
         if (size > config.maxBodyBytes) {
           refused = true;
           chunks.length = 0;
@@ -318,13 +330,7 @@ function createGate(options = {}) {
       text = await readBody(req);
     } catch (error) {
       if (error.tooLarge) {
-        // Answer first, then close: destroying the request now would take the
-        // socket, and the reply, with it. The server's request timeout bounds
-        // how long an endless body can keep the connection open meanwhile.
-        res.on("finish", () => req.destroy());
-        return send(res, 413, rpcError(null, E.INVALID_REQUEST, `Request is larger than ${config.maxBodyBytes} bytes.`), {
-          connection: "close",
-        });
+        return send(res, 413, rpcError(null, E.INVALID_REQUEST, `Request is larger than ${config.maxBodyBytes} bytes.`));
       }
       return send(res, 400, rpcError(null, E.INVALID_REQUEST, "Could not read the request."));
     }
