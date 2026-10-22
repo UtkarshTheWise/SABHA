@@ -47,7 +47,10 @@ async function main() {
   }
   console.log(`electorate now ${await registry.activeMemberCount()}\n`);
 
+  // Names and registration numbers stay on this machine: only the local demo
+  // gets a directory file, and the frontend bundle never includes it.
   saveDirectory(
+    network.name,
     people.map(({ name, identifier, address }) => ({ name, identifier, address }))
   );
 

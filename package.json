@@ -14,7 +14,8 @@
     "seed:besu": "node scripts/hh.js seed --network besu",
     "demo:besu": "node scripts/hh.js demo --network besu",
     "frontend": "npm --prefix frontend run dev",
-    "check:sizes": "node scripts/check-sizes.js"
+    "check:sizes": "node scripts/check-sizes.js",
+    "publish:frontend": "hardhat run scripts/publish-frontend.js"
   },
   "keywords": [],
   "author": "",

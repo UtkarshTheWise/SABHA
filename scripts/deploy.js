@@ -1,9 +1,15 @@
 const hre = require("hardhat");
+const { resolve: resolveNetwork } = require("../config/networks");
 const { save, publishToFrontend } = require("./lib/deployments");
 
 async function main() {
   const { ethers, network } = hre;
   const [admin] = await ethers.getSigners();
+  if (!admin) {
+    throw new Error(
+      `No signing key for "${network.name}". Set DEPLOYER_PRIVATE_KEY (and DEMO_MNEMONIC) in .env; see .env.example.`
+    );
+  }
   const chainId = Number((await ethers.provider.getNetwork()).chainId);
 
   console.log(`network      ${network.name} (chainId ${chainId})`);
@@ -43,7 +49,11 @@ async function main() {
   };
 
   console.log(`wrote ${save(network.name, record)}`);
-  console.log(`wrote ABIs and addresses to ${publishToFrontend(hre, network.name, record)}`);
+  // The in-process "hardhat" network is gone when this script exits, so there is
+  // nothing for a browser to connect to.
+  if (resolveNetwork(network.name)) {
+    console.log(`wrote ABIs and the network file to ${publishToFrontend(hre, network.name, record)}`);
+  }
 }
 
 main().catch((error) => {

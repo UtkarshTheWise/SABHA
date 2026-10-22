@@ -15,3 +15,8 @@ frontend/.env.local
 besu/.env
 besu/permissions_config.toml
 besu/.qbft-config.generated.json
+
+# Local-only chain files: addresses of a throwaway node, and the demo register of names
+frontend/src/chain/networks/localhost.json
+frontend/src/chain/directory.json
+deployments/localhost.json
