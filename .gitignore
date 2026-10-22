@@ -14,3 +14,4 @@ frontend/.env
 frontend/.env.local
 besu/.env
 besu/permissions_config.toml
+besu/.qbft-config.generated.json

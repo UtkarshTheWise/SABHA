@@ -50,7 +50,7 @@ const NETWORKS = {
   },
   besu: {
     label: "Sabha network (Besu QBFT)",
-    chainId: Number(env("BESU_CHAIN_ID", 1337)),
+    chainId: Number(env("BESU_CHAIN_ID", 40717)),
     rpcEnv: "BESU_RPC_URL",
     defaultRpc: "http://127.0.0.1:8545",
     publicRpcEnv: "PUBLIC_RPC_URL_BESU",

@@ -1,99 +1,84 @@
 # Four validators running QBFT consensus. With four nodes the network tolerates
 # one faulty or dishonest validator: QBFT needs 2f+1 of 3f+1, so f = 1.
 #
-# Only node1 publishes its RPC port to the host. The other three are reachable
-# from inside the compose network, which is the point: a member talks to one
-# node, and that node has to convince the others before anything is committed.
+# Nothing here is published to the internet. The peer-to-peer port stays on the
+# private bridge. Validator 1's JSON-RPC (ETH, NET, WEB3 only) is published on
+# the host's loopback, which the public gateway and an operator's SSH tunnel can
+# reach and nobody else. Validator 2 carries the admin API, also loopback only.
+#
+# All shared options live in config.toml; settings come from besu/.env.
+
+x-validator: &validator
+  image: hyperledger/besu:${BESU_VERSION:?copy besu/.env.example to besu/.env}
+  restart: unless-stopped
+  environment:
+    BESU_OPTS: "-Xmx${BESU_HEAP:-1g}"
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
 
 services:
   node1:
-    image: hyperledger/besu:24.12.2
+    <<: *validator
     container_name: sabha-node1
     volumes:
       - ./genesis.json:/config/genesis.json:ro
+      - ./config.toml:/config/besu.toml:ro
       - ./nodes/node1:/data
     command:
-      - --genesis-file=/config/genesis.json
-      - --data-path=/data
-      - --node-private-key-file=/data/key
+      - --config-file=/config/besu.toml
       - --p2p-host=172.28.0.11
-      - --p2p-port=30303
-      - --min-gas-price=0
-      - --rpc-http-enabled
-      - --rpc-http-host=0.0.0.0
-      - --rpc-http-port=8545
-      - --rpc-http-api=ETH,NET,WEB3,QBFT,ADMIN,TXPOOL
-      - --rpc-http-cors-origins=all
-      - --host-allowlist=*
     ports:
-      - "8545:8545"
-      - "30303:30303"
+      - "127.0.0.1:${BESU_LOCAL_RPC_PORT:-8545}:8545"
     networks:
       qbft:
         ipv4_address: 172.28.0.11
 
   node2:
-    image: hyperledger/besu:24.12.2
+    <<: *validator
     container_name: sabha-node2
     volumes:
       - ./genesis.json:/config/genesis.json:ro
+      - ./config.toml:/config/besu.toml:ro
       - ./nodes/node2:/data
     command:
-      - --genesis-file=/config/genesis.json
-      - --data-path=/data
-      - --node-private-key-file=/data/key
+      - --config-file=/config/besu.toml
       - --p2p-host=172.28.0.12
-      - --p2p-port=30303
-      - --min-gas-price=0
-      - --rpc-http-enabled
-      - --rpc-http-host=0.0.0.0
-      - --rpc-http-port=8545
-      - --rpc-http-api=ETH,NET,WEB3,QBFT
-      - --host-allowlist=*
+      # The operator's view of the consensus layer. Never routed to the gateway.
+      - --rpc-http-api=ETH,NET,WEB3,ADMIN,QBFT,TXPOOL
+      - --host-allowlist=localhost,127.0.0.1
+    ports:
+      - "127.0.0.1:${BESU_ADMIN_RPC_PORT:-8546}:8545"
     networks:
       qbft:
         ipv4_address: 172.28.0.12
 
   node3:
-    image: hyperledger/besu:24.12.2
+    <<: *validator
     container_name: sabha-node3
     volumes:
       - ./genesis.json:/config/genesis.json:ro
+      - ./config.toml:/config/besu.toml:ro
       - ./nodes/node3:/data
     command:
-      - --genesis-file=/config/genesis.json
-      - --data-path=/data
-      - --node-private-key-file=/data/key
+      - --config-file=/config/besu.toml
       - --p2p-host=172.28.0.13
-      - --p2p-port=30303
-      - --min-gas-price=0
-      - --rpc-http-enabled
-      - --rpc-http-host=0.0.0.0
-      - --rpc-http-port=8545
-      - --rpc-http-api=ETH,NET,WEB3,QBFT
-      - --host-allowlist=*
     networks:
       qbft:
         ipv4_address: 172.28.0.13
 
   node4:
-    image: hyperledger/besu:24.12.2
+    <<: *validator
     container_name: sabha-node4
     volumes:
       - ./genesis.json:/config/genesis.json:ro
+      - ./config.toml:/config/besu.toml:ro
       - ./nodes/node4:/data
     command:
-      - --genesis-file=/config/genesis.json
-      - --data-path=/data
-      - --node-private-key-file=/data/key
+      - --config-file=/config/besu.toml
       - --p2p-host=172.28.0.14
-      - --p2p-port=30303
-      - --min-gas-price=0
-      - --rpc-http-enabled
-      - --rpc-http-host=0.0.0.0
-      - --rpc-http-port=8545
-      - --rpc-http-api=ETH,NET,WEB3,QBFT
-      - --host-allowlist=*
     networks:
       qbft:
         ipv4_address: 172.28.0.14

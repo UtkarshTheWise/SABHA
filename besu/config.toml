@@ -1,0 +1,37 @@
+# Options shared by all four validators. Each container passes only what
+# differs (its own address, and for validator 2 the admin API) on the command
+# line, and a command-line option wins over this file.
+
+genesis-file="/config/genesis.json"
+data-path="/data"
+node-private-key-file="/data/key"
+p2p-port=30303
+
+# Members never hold the native token: a transaction with gas price zero is
+# valid. Spam is limited at the RPC gateway and by the pool limits below, not
+# by making people pay.
+min-gas-price=0
+min-priority-fee=0
+
+# Who may be a node. The allowlist is /data/permissions_config.toml, written by
+# arrange.mjs. Discovery is off because the validator set is closed and known.
+permissions-nodes-config-file-enabled=true
+discovery-enabled=false
+
+# JSON-RPC. Validator 1 serves the public read/write methods only. The API list
+# is the real boundary; the gateway in front of it is a second one.
+rpc-http-enabled=true
+rpc-http-host="0.0.0.0"
+rpc-http-port=8545
+rpc-http-api=["ETH","NET","WEB3"]
+host-allowlist=["node1","localhost","127.0.0.1"]
+rpc-http-max-batch-size=20
+rpc-http-max-request-content-length=262144
+# eth_call and eth_estimateGas run arbitrary code for an anonymous caller. The
+# default allows 100M gas of simulation; a ballot needs a tiny fraction.
+rpc-gas-cap=30000000
+
+# Bound the pool, since gas is free. These are the layered-pool options; the
+# older tx-pool-max-size belongs to the legacy pool and stops Besu starting.
+tx-pool-max-prioritized=2048
+tx-pool-max-future-by-sender=32
