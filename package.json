@@ -4,7 +4,7 @@
   "description": "Permissioned blockchain voting for small organisations",
   "scripts": {
     "test": "hardhat test",
-    "test:gas": "REPORT_GAS=true hardhat test",
+    "test:gas": "node scripts/test-gas.js",
     "compile": "hardhat compile",
     "node": "hardhat node",
     "deploy": "hardhat run scripts/deploy.js --network localhost",
