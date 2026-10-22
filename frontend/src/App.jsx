@@ -3,21 +3,27 @@ import { id as keccakId } from "ethers";
 
 import Ballot from "./components/Ballot";
 import OfficerPanel from "./components/OfficerPanel";
-import directoryFile from "./chain/directory.json";
 import {
-  RPC_URL,
   STATE,
   contracts,
-  deploymentInfo,
   nodeAccounts,
   readProvider,
   short,
-  walletProvider,
+  walletSigner,
 } from "./lib/chain";
+import { NETWORKS, addToWallet, initialNetwork, isLocalUrl, pollInterval, rememberNetwork } from "./lib/networks";
+
+// The demo register of names, written by `npm run seed` for the local node only.
+// It holds registration numbers, so it must never reach a production bundle,
+// whoever builds it or wherever. `import.meta.env.DEV` is a constant at build
+// time, so this branch, and the file with it, is removed from `vite build`.
+const directoryFiles = import.meta.env.DEV
+  ? import.meta.glob("./chain/directory.json", { eager: true, import: "default" })
+  : {};
+const directoryFile = Object.values(directoryFiles)[0] || [];
 
 const REGISTRAR_ROLE = keccakId("REGISTRAR_ROLE");
 const PROPOSER_ROLE = keccakId("PROPOSER_ROLE");
-const POLL_MS = 4000;
 
 function normalise(p) {
   return {
@@ -42,7 +48,34 @@ function normalise(p) {
 }
 
 export default function App() {
-  const [mode, setMode] = useState("node");
+  const [network, setNetwork] = useState(initialNetwork);
+
+  if (!network) {
+    return (
+      <div className="page">
+        <main>
+          <div className="intro">
+            <h1>No network is configured</h1>
+            <p>
+              This build has no deployment to read. Deploy the contracts with <code>npm run deploy</code> (or{" "}
+              <code>npm run publish:frontend</code> if they are already deployed), then rebuild.
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  return <Dashboard key={network.key} network={network} onNetwork={setNetwork} />;
+}
+
+function Dashboard({ network, onNetwork }) {
+  const local = isLocalUrl(network.rpcUrl);
+  // "read": no signer, for anyone just looking. "wallet": a browser wallet the
+  // visitor chose to connect. "node": an unlocked development node, local only.
+  // A hosted network starts read-only so nobody is greeted by a wallet prompt.
+  const [mode, setMode] = useState(local ? "node" : "read");
+  const [attempt, setAttempt] = useState(0);
   const [accounts, setAccounts] = useState([]);
   const [account, setAccount] = useState(null);
   const [signer, setSigner] = useState(null);
@@ -50,24 +83,32 @@ export default function App() {
   const [proposals, setProposals] = useState([]);
   const [receipts, setReceipts] = useState({});
   const [roles, setRoles] = useState({ registrar: false, proposer: false, member: false });
-  const [status, setStatus] = useState("Connecting to the node\u2026");
+  const [status, setStatus] = useState("Connecting to the node…");
+  const [walletNote, setWalletNote] = useState(null);
 
-  const reader = useMemo(() => readProvider(), []);
-  const readContracts = useMemo(() => contracts(reader), [reader]);
-  const writeContracts = useMemo(() => (signer ? contracts(signer) : null), [signer]);
+  const reader = useMemo(() => readProvider(network), [network]);
+  const readContracts = useMemo(() => contracts(reader, network), [reader, network]);
+  const writeContracts = useMemo(() => (signer ? contracts(signer, network) : null), [signer, network]);
   const signerRef = useRef(null);
   signerRef.current = signer;
 
   const directory = useMemo(() => {
     const map = {};
-    for (const person of directoryFile) map[person.address.toLowerCase()] = person.name;
+    // The register belongs to the local demo; do not attach its names to another chain.
+    if (local) for (const person of directoryFile) map[person.address.toLowerCase()] = person.name;
     return map;
-  }, []);
+  }, [local]);
 
   // --- connect -----------------------------------------------------------
   useEffect(() => {
     let cancelled = false;
     async function connect() {
+      if (mode === "read") {
+        setSigner(null);
+        setAccount(null);
+        setAccounts([]);
+        return;
+      }
       try {
         if (mode === "node") {
           const list = await nodeAccounts(reader);
@@ -76,18 +117,25 @@ export default function App() {
           const chosen = list.includes(account) ? account : list[1] || list[0];
           setAccount(chosen);
           setSigner(chosen ? await reader.getSigner(chosen) : null);
-          setStatus(null);
         } else {
-          const browser = await walletProvider();
-          const active = await browser.getSigner();
+          const active = await walletSigner(network);
           if (cancelled) return;
           setAccounts([active.address]);
           setAccount(active.address);
           setSigner(active);
-          setStatus(null);
         }
       } catch (error) {
-        if (!cancelled) setStatus(error.message);
+        if (cancelled) return;
+        // Reading the ledger needs no wallet. Say why the wallet part failed and carry on.
+        setSigner(null);
+        setAccount(null);
+        setWalletNote(
+          mode === "wallet" && error?.code === "ACTION_REJECTED"
+            ? "The wallet request was declined. You can still read everything; connect when you want to vote."
+            : mode === "wallet"
+              ? `Could not connect a wallet: ${error?.shortMessage || error?.message}`
+              : `Could not reach the node's accounts: ${error?.shortMessage || error?.message}`
+        );
       }
     }
     connect();
@@ -95,7 +143,7 @@ export default function App() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [mode, attempt]);
 
   async function chooseAccount(address) {
     setAccount(address);
@@ -105,10 +153,7 @@ export default function App() {
   // --- read the chain ----------------------------------------------------
   const refresh = useCallback(async () => {
     try {
-      const [height, page] = await Promise.all([
-        reader.getBlockNumber(),
-        readContracts.voting.listProposals(0, 50),
-      ]);
+      const [height, page] = await Promise.all([reader.getBlockNumber(), readContracts.voting.listProposals(0, 50)]);
       setBlockNumber(height);
       const list = page.map(normalise);
       setProposals(list);
@@ -124,39 +169,74 @@ export default function App() {
       ]);
       setRoles({ registrar, proposer, member });
 
-      const entries = await Promise.all(
-        list.map(async (p) => [p.id, await readContracts.voting.receiptOf(p.id, who)])
-      );
+      const entries = await Promise.all(list.map(async (p) => [p.id, await readContracts.voting.receiptOf(p.id, who)]));
       setReceipts(Object.fromEntries(entries));
     } catch (error) {
-      setStatus(`Cannot reach the node at ${RPC_URL}. Is it running?`);
+      setStatus(`Cannot reach ${network.label}. Is it running, and is this the right network?`);
     }
-  }, [reader, readContracts]);
+  }, [reader, readContracts, network]);
 
   useEffect(() => {
     refresh();
-    const timer = setInterval(refresh, POLL_MS);
+    // A public endpoint is shared by everyone with the page open, so poll gently
+    // there, and not at all while the tab is hidden.
+    const timer = setInterval(() => {
+      if (!document.hidden) refresh();
+    }, pollInterval(network));
     return () => clearInterval(timer);
-  }, [refresh, account]);
+  }, [refresh, account, network]);
 
   const open = proposals.filter((p) => STATE[Number(p.state)] === "Active");
   const upcoming = proposals.filter((p) => STATE[Number(p.state)] === "Pending" && !p.cancelled);
   const settled = proposals.filter((p) => ["Closed", "Decided"].includes(STATE[Number(p.state)]) || p.cancelled);
+
+  const canAddToWallet = !local && typeof window !== "undefined" && window.ethereum;
+
+  async function addNetwork() {
+    setWalletNote(null);
+    try {
+      await addToWallet(window.ethereum, network);
+      setWalletNote(`${network.label} is in your wallet.`);
+    } catch (error) {
+      setWalletNote(error?.code === 4001 ? "You declined to add the network." : error?.message || "The wallet would not add the network.");
+    }
+  }
+
+  function chooseNetwork(key) {
+    const next = NETWORKS.find((n) => n.key === key);
+    if (!next) return;
+    rememberNetwork(key);
+    onNetwork(next);
+  }
 
   return (
     <div className="page">
       <header className="strip">
         <div className="strip-left">
           <span className="wordmark">Sabha</span>
+          {NETWORKS.length > 1 ? (
+            <label className="strip-select">
+              <span className="visually-hidden">Network</span>
+              <select value={network.key} onChange={(e) => chooseNetwork(e.target.value)}>
+                {NETWORKS.map((n) => (
+                  <option key={n.key} value={n.key}>
+                    {n.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <span className="strip-fact">{network.label}</span>
+          )}
           <span className="strip-fact">block {blockNumber}</span>
-          <span className="strip-fact">chain {deploymentInfo.chainId}</span>
-          <span className="strip-fact" title={deploymentInfo.contracts.DirectDemocracy.address}>
-            ballots at {short(deploymentInfo.contracts.DirectDemocracy.address)}
+          <span className="strip-fact">chain {network.chainId}</span>
+          <span className="strip-fact" title={network.contracts.DirectDemocracy.address}>
+            ballots at {short(network.contracts.DirectDemocracy.address)}
           </span>
         </div>
         <div className="strip-right">
           {mode === "node" ? (
-            <select value={account || ""} onChange={(e) => chooseAccount(e.target.value)}>
+            <select value={account || ""} onChange={(e) => chooseAccount(e.target.value)} aria-label="Account">
               {accounts.map((address) => (
                 <option key={address} value={address}>
                   {directory[address.toLowerCase()] || short(address)}
@@ -164,11 +244,33 @@ export default function App() {
               ))}
             </select>
           ) : (
-            <span className="strip-fact">{account ? short(account) : "not connected"}</span>
+            <span className="strip-fact">{account ? short(account) : "reading only"}</span>
           )}
-          <button className="link" onClick={() => setMode(mode === "node" ? "wallet" : "node")}>
-            {mode === "node" ? "use a browser wallet" : "use a node account"}
-          </button>
+          {mode === "read" && (
+            <button className="link" onClick={() => setMode("wallet")}>
+              connect a wallet
+            </button>
+          )}
+          {mode === "wallet" && !account && (
+            <button className="link" onClick={() => setAttempt((n) => n + 1)}>
+              try connecting again
+            </button>
+          )}
+          {canAddToWallet && (
+            <button className="link" onClick={addNetwork}>
+              add this network to my wallet
+            </button>
+          )}
+          {local && (
+            <button className="link" onClick={() => setMode(mode === "node" ? "wallet" : "node")}>
+              {mode === "node" ? "use a browser wallet" : "use a node account"}
+            </button>
+          )}
+          {!local && mode === "wallet" && account && (
+            <button className="link" onClick={() => setMode("read")}>
+              disconnect
+            </button>
+          )}
         </div>
       </header>
 
@@ -189,6 +291,7 @@ export default function App() {
         </div>
 
         {status && <p className="status">{status}</p>}
+        {walletNote && <p className="note">{walletNote}</p>}
 
         <Section title="Open now" empty="Nothing is open for voting.">
           {open.map((p) => (
@@ -243,8 +346,8 @@ export default function App() {
 
       <footer>
         <p>
-          Registry {deploymentInfo.contracts.MemberRegistry.address} · deployed from block{" "}
-          {deploymentInfo.contracts.MemberRegistry.block} · reading {RPC_URL}
+          Registry {network.contracts.MemberRegistry.address} · deployed from block{" "}
+          {network.contracts.MemberRegistry.block} · reading {network.rpcUrl}
         </p>
       </footer>
     </div>

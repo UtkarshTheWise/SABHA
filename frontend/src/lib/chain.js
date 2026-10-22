@@ -1,12 +1,9 @@
 import { BrowserProvider, Contract, JsonRpcProvider, keccak256, toUtf8Bytes } from "ethers";
 
-import deployment from "../chain/deployment.json";
-import registryAbi from "../chain/MemberRegistry.abi.json";
-import votingAbi from "../chain/DirectDemocracy.abi.json";
-
-export const RPC_URL = import.meta.env.VITE_RPC_URL || "http://127.0.0.1:8545";
-export const addresses = deployment.contracts;
-export const deploymentInfo = deployment;
+import registryAbi from "../chain/abi/MemberRegistry.json";
+import votingAbi from "../chain/abi/DirectDemocracy.json";
+import { feeOverrides } from "./networkParams";
+import { switchWallet } from "./networks";
 
 export const STATE = ["Pending", "Active", "Closed", "Decided"];
 
@@ -15,34 +12,57 @@ export const STATE = ["Pending", "Active", "Closed", "Decided"];
  *
  * "node" talks straight to an unlocked development node and signs with one of
  * its accounts, which is what makes a classroom demonstration possible without
- * eight browser profiles. "wallet" uses MetaMask and is what a real deployment
- * would use.
+ * eight browser profiles. It exists only on the local network. "wallet" uses a
+ * browser wallet and is what a real deployment uses.
  */
-export function readProvider() {
-  return new JsonRpcProvider(RPC_URL);
+export function readProvider(network) {
+  // ethers folds calls made within a few milliseconds into one HTTP request, up
+  // to 100 at a time by default. The public gateway accepts 20, so stay well
+  // under it. The chain id is known, so there is no need to ask for it again.
+  return new JsonRpcProvider(network.rpcUrl, network.chainId, { staticNetwork: true, batchMaxCount: 10 });
 }
 
 export async function nodeAccounts(provider) {
   return provider.send("eth_accounts", []);
 }
 
-export async function walletProvider() {
-  if (!window.ethereum) throw new Error("No browser wallet found. Install MetaMask or use node mode.");
-  const provider = new BrowserProvider(window.ethereum);
+/**
+ * Connect the browser wallet, moving it to `network` first if it is elsewhere.
+ * Returns a signer whose transactions carry the network's fee settings.
+ */
+export async function walletSigner(network) {
+  if (!window.ethereum) {
+    throw new Error("No browser wallet found. Open this page in your wallet app's browser, or install a wallet.");
+  }
+  let provider = new BrowserProvider(window.ethereum);
   await provider.send("eth_requestAccounts", []);
-  return provider;
+
+  const current = parseInt(await provider.send("eth_chainId", []), 16);
+  if (current !== network.chainId) {
+    await switchWallet(window.ethereum, network);
+    // ethers remembers the network it first saw and refuses a changed one.
+    provider = new BrowserProvider(window.ethereum);
+  }
+
+  const signer = await provider.getSigner();
+  const fees = feeOverrides(network);
+  if (Object.keys(fees).length > 0) {
+    const send = signer.sendTransaction.bind(signer);
+    signer.sendTransaction = (transaction) => send({ ...transaction, ...fees });
+  }
+  return signer;
 }
 
-export function contracts(runner) {
+export function contracts(runner, network) {
   return {
-    registry: new Contract(addresses.MemberRegistry.address, registryAbi, runner),
-    voting: new Contract(addresses.DirectDemocracy.address, votingAbi, runner),
+    registry: new Contract(network.contracts.MemberRegistry.address, registryAbi, runner),
+    voting: new Contract(network.contracts.DirectDemocracy.address, votingAbi, runner),
   };
 }
 
 export const identifierHash = (value) => keccak256(toUtf8Bytes(value.trim()));
 
-export const short = (address) => `${address.slice(0, 6)}\u2026${address.slice(-4)}`;
+export const short = (address) => `${address.slice(0, 6)}…${address.slice(-4)}`;
 
 export function countdown(closesAt, now = Math.floor(Date.now() / 1000)) {
   let seconds = Number(closesAt) - now;
