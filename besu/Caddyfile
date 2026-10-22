@@ -1,0 +1,46 @@
+# The public edge of the Sabha network: HTTPS in, plain JSON-RPC out to the gate.
+#
+# Caddy does only what a general-purpose proxy is good at: certificates and TLS.
+# Everything specific to this application (which methods, how many per second,
+# which web pages may read the answers) is in rpc-gate, where it has tests.
+#
+# Settings come from besu/.env:
+#   RPC_DOMAIN    the name the certificate is issued for, e.g. rpc.sabha.example.
+#                 Its DNS A/AAAA record must already point at this machine, and
+#                 ports 80 and 443 must be reachable, or issuance fails.
+#   GATE_UPSTREAM where the gate listens (default: the compose service).
+{
+	# Plain HTTP/1.1 and HTTP/2 over TCP are enough, and one fewer UDP port to open.
+	servers {
+		protocols h1 h2
+	}
+}
+
+{$RPC_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "no-referrer"
+		Cache-Control "no-store"
+	}
+
+	# The same limit as the gate's maxBodyBytes (256 KiB; Caddy's "KB" would mean
+	# 1000 bytes). Equal on purpose: if Caddy's were higher, a body in between
+	# would make the gate answer 413 and hang up while Caddy was still sending,
+	# and the client would see a 502 instead of a clear refusal.
+	request_body {
+		max_size 256KiB
+	}
+
+	# Caddy sets X-Forwarded-For to the address it actually saw, replacing
+	# anything the client sent. The gate counts from the end of that header.
+	reverse_proxy {$GATE_UPSTREAM:rpc-gate:8080} {
+		transport http {
+			dial_timeout 3s
+			response_header_timeout 15s
+		}
+	}
+}

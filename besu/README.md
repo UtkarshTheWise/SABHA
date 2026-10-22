@@ -34,7 +34,11 @@ Worth keeping straight, because it is the obvious question in a review:
   through `permissions-nodes-config-file-enabled` in `config.toml`.
 - **What may be asked of a node (here, enforced by the API list).** Validator 1
   serves `ETH`, `NET` and `WEB3` only. The administrative methods exist on
-  validator 2, bound to the machine's loopback, and are never routed outward.
+  validators 2, 3 and 4, bound to the machine's loopback (ports 8546 to 8548),
+  and are never routed outward. They are on three validators, not one, because
+  changing the validator set needs votes from a majority and each validator
+  votes through its own RPC. On a server, a gateway in front of validator 1
+  allows an explicit list of methods and rate-limits each client.
 - **Who may vote (`MemberRegistry`).** Controlled by the roster. Running a node
   does not let anybody cast a vote, and being on the roster does not let a
   member produce blocks.

@@ -4,7 +4,10 @@
 # Nothing here is published to the internet. The peer-to-peer port stays on the
 # private bridge. Validator 1's JSON-RPC (ETH, NET, WEB3 only) is published on
 # the host's loopback, which the public gateway and an operator's SSH tunnel can
-# reach and nobody else. Validator 2 carries the admin API, also loopback only.
+# reach and nobody else. Validators 2, 3 and 4 carry the admin API (ADMIN, QBFT,
+# TXPOOL), also loopback only, on ports 8546, 8547 and 8548. A change to the
+# validator set needs votes from three of the four, and each votes through its
+# own RPC, so an operator must be able to reach more than one.
 #
 # All shared options live in config.toml; settings come from besu/.env.
 
@@ -50,7 +53,7 @@ services:
       - --rpc-http-api=ETH,NET,WEB3,ADMIN,QBFT,TXPOOL
       - --host-allowlist=localhost,127.0.0.1
     ports:
-      - "127.0.0.1:${BESU_ADMIN_RPC_PORT:-8546}:8545"
+      - "127.0.0.1:8546:8545"
     networks:
       qbft:
         ipv4_address: 172.28.0.12
@@ -65,6 +68,10 @@ services:
     command:
       - --config-file=/config/besu.toml
       - --p2p-host=172.28.0.13
+      - --rpc-http-api=ETH,NET,WEB3,ADMIN,QBFT,TXPOOL
+      - --host-allowlist=localhost,127.0.0.1
+    ports:
+      - "127.0.0.1:8547:8545"
     networks:
       qbft:
         ipv4_address: 172.28.0.13
@@ -79,9 +86,81 @@ services:
     command:
       - --config-file=/config/besu.toml
       - --p2p-host=172.28.0.14
+      - --rpc-http-api=ETH,NET,WEB3,ADMIN,QBFT,TXPOOL
+      - --host-allowlist=localhost,127.0.0.1
+    ports:
+      - "127.0.0.1:8548:8545"
     networks:
       qbft:
         ipv4_address: 172.28.0.14
+
+  # --- the public endpoint: docker compose --profile public up -d ------------
+  # Only these two services ever face the internet, and only Caddy publishes a
+  # port. Members' wallets and the dashboard talk to Caddy, which hands plain
+  # JSON-RPC to the gate, which lets an explicit list of methods through to
+  # validator 1.
+
+  rpc-gate:
+    profiles: ["public"]
+    build: ./rpc-gate
+    image: sabha-rpc-gate:local
+    container_name: sabha-rpc-gate
+    restart: unless-stopped
+    depends_on:
+      - node1
+    environment:
+      UPSTREAM_URL: http://node1:8545
+      TRUSTED_HOPS: "1" # Caddy
+      FRONTEND_ORIGINS: ${FRONTEND_ORIGINS:?set FRONTEND_ORIGINS in besu/.env}
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - qbft
+
+  caddy:
+    profiles: ["public"]
+    image: caddy:${CADDY_VERSION:-2.11.7}-alpine
+    container_name: sabha-caddy
+    restart: unless-stopped
+    depends_on:
+      - rpc-gate
+    environment:
+      RPC_DOMAIN: ${RPC_DOMAIN:?set RPC_DOMAIN in besu/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Certificates live here. Keep the volume: re-issuing on every rebuild
+      # runs into the certificate authority's rate limits.
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - qbft
+
+volumes:
+  caddy_data:
+  caddy_config:
 
 networks:
   qbft:
