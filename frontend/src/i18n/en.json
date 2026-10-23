@@ -1,0 +1,490 @@
+{
+  "app": {
+    "skip": "Skip to content"
+  },
+  "nav": {
+    "home": "Sabha, all ballots",
+    "primary": "Main",
+    "ballots": "Ballots",
+    "mine": "Your votes",
+    "officer": "Officer desk",
+    "network": "Network",
+    "menu": "Menu"
+  },
+  "controls": {
+    "language": "Language",
+    "network": "Network"
+  },
+  "form": {
+    "required": "required",
+    "back": "Back",
+    "cancel": "Cancel",
+    "done": "Done"
+  },
+  "copy": {
+    "copy": "Copy",
+    "copied": "Copied"
+  },
+  "states": {
+    "loading": "Reading the ledger.",
+    "retry": "Try again"
+  },
+  "noNetwork": {
+    "title": "No network is set up",
+    "body": "This copy of the page has no deployment to read. Deploy the contracts, then rebuild the page."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "heading": "There is nothing at this address",
+    "body": "The link may be old or mistyped. The ballots are all in one list."
+  },
+  "footer": {
+    "network": "Network",
+    "block": "Latest block",
+    "ballots": "Ballots contract",
+    "roster": "Roster contract",
+    "note": "Every number on these pages is read from this ledger, not reported by a server.",
+    "details": "How the network is doing."
+  },
+  "stage": {
+    "pending": "Pending",
+    "active": "Active",
+    "closed": "Closed",
+    "finalised": "Finalised",
+    "withdrawn": "Withdrawn"
+  },
+  "time": {
+    "opensIn": "Opens in {time}",
+    "closesIn": "Closes in {time}",
+    "underMinute": "less than a minute"
+  },
+  "timeline": {
+    "label": "Where this ballot is",
+    "state": {
+      "done": "Done",
+      "current": "Now",
+      "next": "Next"
+    },
+    "detail": {
+      "pending": {
+        "done": "Created {date}",
+        "current": "Opens in {time}",
+        "next": "Created when an officer opens it"
+      },
+      "active": {
+        "done": "Voting ended {date}",
+        "current": "Closes in {time}",
+        "next": "Opens {date}"
+      },
+      "closed": {
+        "done": "Voting has ended",
+        "current": "Waiting for someone to count the votes",
+        "next": "Closes {date}"
+      },
+      "finalised": {
+        "done": "Result published",
+        "current": "Result published",
+        "next": "Published once the votes are counted"
+      }
+    }
+  },
+  "ballots": {
+    "title": "Ballots",
+    "lede": "Every question the society has put to its members. The counts are read from the ledger.",
+    "loading": "Reading the ballots.",
+    "filter": {
+      "label": "Show",
+      "all": "All",
+      "open": "Open now",
+      "soon": "Opening soon",
+      "finished": "Finished"
+    },
+    "columns": {
+      "question": "Question",
+      "status": "Status",
+      "turnout": "Turnout",
+      "result": "Result"
+    },
+    "turnout": "{votes} of {electorate}",
+    "youVoted": "You voted: {option}",
+    "result": {
+      "notOpen": "Not open yet",
+      "open": "Voting is open",
+      "uncounted": "Waiting for the count",
+      "withdrawn": "Withdrawn",
+      "carried": "Carried: {option}",
+      "advisory": "Advisory: {option} led",
+      "tied": "Tied, nothing carried",
+      "noVotes": "Nobody voted"
+    },
+    "empty": {
+      "title": "No ballots yet",
+      "body": "When an officer opens a ballot, it appears here.",
+      "filtered": "No ballots match this filter",
+      "showAll": "Show all ballots"
+    },
+    "error": {
+      "title": "Could not read the ballots",
+      "body": "{network} did not answer. Your connection may be down, or the network may be."
+    },
+    "stale": "Showing what was read last. The network did not answer just now."
+  },
+  "ballot": {
+    "back": "All ballots",
+    "loading": "Reading the ballot.",
+    "about": "What this ballot asks",
+    "facts": "How this ballot is decided",
+    "openedBy": "Opened by {who}",
+    "notFound": {
+      "title": "Ballot not found",
+      "heading": "There is no such ballot",
+      "body": "{network} has no ballot {id}."
+    },
+    "error": {
+      "title": "Could not read this ballot",
+      "body": "{network} did not answer. Try again in a moment."
+    }
+  },
+  "turnout": {
+    "title": "Turnout",
+    "summary": "{votes} of {electorate} members have voted. {needed} are needed for the result to count.",
+    "summaryReached": "{votes} of {electorate} members have voted. The {needed} needed for the result to count have been reached.",
+    "reached": "Quorum reached",
+    "notYet": "Quorum not reached yet"
+  },
+  "results": {
+    "live": "Count so far",
+    "final": "Final count",
+    "unit_one": "vote",
+    "unit_other": "votes",
+    "share": "{percent} percent of the votes",
+    "none": "No votes yet.",
+    "badge": {
+      "leading": "Leading",
+      "winner": "Winner",
+      "advisory": "Led, advisory",
+      "level": "Level"
+    }
+  },
+  "outcome": {
+    "counting": "Voting has ended. The result is not final until someone counts the votes.",
+    "carried": "Carried: {option}.",
+    "carriedDetail": "{votes} of {electorate} members voted, which met the quorum of {needed}.",
+    "advisory": "Advisory: {option} led.",
+    "advisoryDetail": "Only {votes} of {electorate} members voted and {needed} were needed, so this result is advisory and does not bind the society.",
+    "tied": "Tied: nothing carried.",
+    "tiedDetail": "{options} each received {count} votes. The society's own rules decide what happens next.",
+    "noVotes": "Nobody voted.",
+    "noVotesDetail": "No votes were cast on this ballot, so it has no result.",
+    "withdrawn": "This ballot was withdrawn before voting opened."
+  },
+  "rules": {
+    "title": "How this ballot is decided",
+    "opens": "Opens",
+    "closes": "Closes",
+    "electorate": "Members who could vote",
+    "electorateHelp": "Counted when the ballot was created, so adding members later cannot move the bar.",
+    "quorum": "Quorum",
+    "quorumValue": "{percent} percent of the members, which is {needed} votes",
+    "method": "Rule",
+    "methodValue": "The option with the most votes wins. If two options tie, nothing carries."
+  },
+  "vote": {
+    "title": "Your vote",
+    "choose": "Choose one option",
+    "pick": "Pick an option to continue.",
+    "review": "You are voting for {option} as {who}. A vote cannot be changed once it is recorded.",
+    "cast": "Cast vote",
+    "casting": "Waiting for your wallet",
+    "noWallet": "Connect a wallet to vote. Reading this ballot needs no wallet.",
+    "notMember": "This wallet is not on the roster, so it cannot vote here. Give your address to an officer to be added.",
+    "notOpen": {
+      "pending": "Voting has not opened yet. It opens {when}.",
+      "over": "Voting on this ballot has ended."
+    }
+  },
+  "receipt": {
+    "title": "Your vote is recorded",
+    "body": "You voted {option}. It was recorded in block {block}.",
+    "hashHelp": "Receipt code: made from this ballot, your address, your choice and the block. Keep it to check your vote later.",
+    "copy": "Copy receipt code"
+  },
+  "finalise": {
+    "title": "Count the votes",
+    "body": "Voting has ended. Anyone may publish the result; it is worked out from the votes already on the ledger.",
+    "action": "Count the votes"
+  },
+  "withdraw": {
+    "title": "Withdraw this ballot",
+    "body": "An officer can withdraw a ballot until voting opens. After that it cannot be withdrawn.",
+    "action": "Withdraw ballot"
+  },
+  "verify": {
+    "title": "Check the count yourself",
+    "body": "Read every vote for this ballot from the ledger's event log, add them up in your browser, and compare with the number the contract published.",
+    "action": "Recount from the ledger",
+    "again": "Recount again",
+    "running": "Reading blocks, {done} of {total}",
+    "match": "The recount matches the contract.",
+    "mismatch": "The recount does not match the contract.",
+    "found": "{count} votes found in the log, in blocks {first} to {last}.",
+    "option": "Option",
+    "recount": "Your recount",
+    "contract": "Contract",
+    "oddities": "The log held a repeated voter or an option that does not exist, which this contract never allows. The log may belong to a different contract.",
+    "error": "Could not read the log. The network may be busy; try again."
+  },
+  "tx": {
+    "title": "Transaction",
+    "working": "Working",
+    "wallet": "Waiting for you to approve it in your wallet.",
+    "pending": "Sent. Waiting for the network to put it in a block.",
+    "confirmed": "Recorded in block {block}.",
+    "failed": "It did not go through.",
+    "failedInBlock": "It reached block {block} but was refused.",
+    "hash": "Transaction code",
+    "copyHash": "Copy transaction code",
+    "block": "Block",
+    "gas": "Gas used",
+    "fee": "Fee paid",
+    "free": "Nothing: this network does not charge for gas.",
+    "explorer": "View on the block explorer",
+    "details": "Technical details",
+    "dismiss": "Dismiss",
+    "what": {
+      "vote": "Your vote is now part of the ledger. Nobody can change it or remove it.",
+      "finalise": "The result is now published on the ledger.",
+      "withdraw": "The ballot is withdrawn and cannot be voted on.",
+      "create": "The ballot now exists on the ledger. Voting opens in a moment.",
+      "enrol": "The member is now on the roster.",
+      "suspend": "The member is suspended. They keep their past votes but cannot vote on new ballots.",
+      "reinstate": "The member can vote again."
+    }
+  },
+  "errors": {
+    "walletRejected": "You declined it in your wallet. Nothing was sent.",
+    "rateLimited": "This address has sent too many requests for a moment. Wait a few seconds and try again.",
+    "methodRefused": "The public network address does not allow that request.",
+    "noFunds": "This wallet has no funds to pay the network fee. On a network that charges for gas, add some first.",
+    "nonce": "Your wallet's transaction count is out of step. Wait for pending transactions to finish, or reset the account in your wallet.",
+    "pending": "A transaction from this wallet is still waiting. Let it finish first.",
+    "wrongNetwork": "Your wallet is on a different network. Switch it to the network shown at the top of the page.",
+    "reverted": "The network refused it, and gave no reason. Check the ballot is still open and your wallet is on the roster.",
+    "unreachable": "The network did not answer. Check your connection and try again.",
+    "unknown": "Something went wrong. The details below may help an officer find out what.",
+    "AlreadyVoted": "You have already voted on ballot {ballot}. A vote can only be cast once.",
+    "NotAMember": "This wallet is not on the roster, so it cannot vote. Give your address to an officer.",
+    "VotingNotOpen": {
+      "pending": "Voting on ballot {ballot} has not opened yet.",
+      "active": "Voting on ballot {ballot} is open.",
+      "closed": "Voting on ballot {ballot} has ended.",
+      "finalised": "Ballot {ballot} has already been counted."
+    },
+    "UnknownOption": "That option is not on this ballot.",
+    "UnknownProposal": "There is no ballot {ballot}.",
+    "VotingStillOpen": "Voting has not ended yet, so the votes cannot be counted.",
+    "AlreadyFinalised": "This ballot has already been counted.",
+    "ProposalIsCancelled": "This ballot was withdrawn.",
+    "CannotCancelNow": "A ballot can only be withdrawn before voting opens.",
+    "NoReceipt": "This wallet has not voted on that ballot.",
+    "WindowInPast": "The closing time has already passed. Choose a later one.",
+    "WindowInverted": "The ballot cannot close before it opens.",
+    "BadOptionCount": "A ballot needs between {min} and {max} options. You gave {given}.",
+    "EmptyTitle": "The question cannot be empty.",
+    "QuorumTooHigh": "The quorum cannot be more than 100 percent.",
+    "NoElectorate": "Add at least one member to the roster before opening a ballot.",
+    "AccessControlUnauthorizedAccount": "This wallet does not hold the role that action needs.",
+    "AccessControlBadConfirmation": "That role change was not confirmed by the right wallet.",
+    "AlreadyEnrolled": "That wallet is already on the roster.",
+    "IdentifierAlreadyUsed": "That registration number is already linked to another wallet.",
+    "NotEnrolled": "That wallet is not on the roster.",
+    "AlreadyActive": "That member is already active.",
+    "AlreadySuspended": "That member is already suspended.",
+    "EmptyIdentifier": "Enter the registration number.",
+    "LengthMismatch": "The two lists have different lengths."
+  },
+  "wallet": {
+    "title": "Your wallet",
+    "connect": "Connect a wallet",
+    "close": "Close",
+    "intro": "Every ballot can be read without a wallet. You only need one to vote or to act as an officer.",
+    "connectedAs": "Connected as",
+    "copyAddress": "Copy address",
+    "disconnect": "Disconnect",
+    "addNetwork": "Add {network} to my wallet",
+    "networkAdded": "{network} is in your wallet.",
+    "via": {
+      "app": "Through {name}.",
+      "local": "A wallet kept in this browser.",
+      "node": "A development account on the local node."
+    },
+    "role": {
+      "member": "On the roster: can vote.",
+      "notMember": "Not on the roster: can read, cannot vote.",
+      "officer": "Holds an officer role."
+    },
+    "app": {
+      "title": "Use a wallet app",
+      "body": "MetaMask or any wallet that works in this browser. On a phone, open this page from inside your wallet app.",
+      "connect": "Connect {name}",
+      "none": "No wallet app was found in this browser."
+    },
+    "local": {
+      "title": "Use a wallet on this device",
+      "body": "For members with no wallet app. Sabha makes a wallet, locks it with a passphrase you choose and keeps it in this browser.",
+      "create": "Create a wallet",
+      "createBody": "Choose a passphrase. Nobody can reset it for you, and without it the wallet cannot be opened.",
+      "passphrase": "Passphrase",
+      "passphraseHelp": "At least 10 characters.",
+      "confirm": "Type it again",
+      "mismatch": "The two passphrases are different.",
+      "tooShort": "Use at least 10 characters.",
+      "tooSimple": "Use more than one repeated character.",
+      "creating": "Creating your wallet",
+      "created": "Your wallet is ready",
+      "backupWarning": "Download the backup file now. If this browser's data is cleared, the file and your passphrase are the only way back in. Keep the file somewhere safe.",
+      "download": "Download backup file",
+      "downloaded": "Backup downloaded.",
+      "addressHelp": "Give this address to an officer so they can add you to the roster.",
+      "unlockAction": "Unlock wallet {address}",
+      "unlockTitle": "Unlock your wallet",
+      "unlock": "Unlock",
+      "wrong": "That passphrase did not open the wallet.",
+      "restore": "Restore from a backup file",
+      "restoreAction": "Restore wallet",
+      "file": "Backup file",
+      "fileHelp": "The file you downloaded when you created the wallet.",
+      "badFile": "That is not a wallet backup file.",
+      "forget": "Remove this wallet from the browser",
+      "forgetWarning": "This removes the wallet from this browser. You can only get it back from the backup file.",
+      "forgetYes": "Yes, remove it"
+    },
+    "node": {
+      "title": "Use a development account",
+      "body": "This is a local test node with accounts already unlocked.",
+      "account": "Account",
+      "use": "Use this account"
+    }
+  },
+  "mine": {
+    "title": "Your votes",
+    "lede": "The ballots you have voted on, read from the ledger.",
+    "as": "Showing votes recorded for {address}.",
+    "yourVote": "Your vote",
+    "recorded": "Recorded",
+    "block": "Block {block}",
+    "error": "Your votes could not be read just now.",
+    "noWallet": {
+      "title": "Connect a wallet to see your votes",
+      "body": "Votes belong to an address, so the page needs to know which wallet is yours."
+    },
+    "empty": {
+      "title": "You have not voted yet",
+      "body": "When you vote, your receipt appears here.",
+      "action": "See open ballots"
+    }
+  },
+  "officer": {
+    "title": "Officer desk",
+    "lede": "Open ballots and keep the roster. The contracts decide who may do what; this page only offers what your wallet is allowed.",
+    "tabs": {
+      "label": "Officer tasks",
+      "ballot": "Open a ballot",
+      "roster": "Roster"
+    },
+    "noWallet": {
+      "title": "Connect a wallet to continue",
+      "body": "Officer tasks are tied to a wallet that holds a role."
+    },
+    "noAccess": {
+      "title": "This wallet is not an officer",
+      "body": "Officers can open ballots and keep the roster. Ask the society's secretary to grant this address a role."
+    },
+    "noProposer": {
+      "title": "This wallet cannot open ballots",
+      "body": "It can keep the roster. Opening a ballot needs the proposer role."
+    },
+    "ballot": {
+      "question": "Question",
+      "background": "Background for members",
+      "backgroundHelp": "Optional. Members read this before they vote.",
+      "options": "Options, one per line",
+      "optionsHelp_one": "{count} option so far. A ballot needs between 2 and 16.",
+      "optionsHelp_other": "{count} options so far. A ballot needs between 2 and 16.",
+      "duration": "Open for (hours)",
+      "durationHelp": "Voting opens about {delay} seconds after it is recorded.",
+      "quorum": "Quorum (percent of members)",
+      "quorumHelp": "There are {electorate} active members now. That number is fixed when the ballot is created.",
+      "quorumHelpPlain": "The share of members that must vote for the result to count.",
+      "open": "Open the ballot",
+      "needTitle": "Write the question.",
+      "needOptions": "Give between 2 and 16 options, one per line.",
+      "needHours": "Choose a duration of at least 1 hour.",
+      "needQuorum": "Quorum must be a number from 0 to 100."
+    },
+    "roster": {
+      "title": "Members",
+      "member": "Member",
+      "status": "Status",
+      "enrolled": "Enrolled",
+      "action": "Action",
+      "active": "Active",
+      "suspended": "Suspended",
+      "suspend": "Suspend",
+      "reinstate": "Reinstate",
+      "empty": {
+        "title": "No members yet",
+        "body": "Add the first member below. A ballot cannot open until the roster has someone on it."
+      },
+      "error": "Could not read the roster",
+      "errorBody": "The network did not answer. Try again in a moment.",
+      "addTitle": "Add a member",
+      "address": "Wallet address",
+      "identifier": "Registration number",
+      "identifierHelp": "Only a fingerprint of this reaches the chain. The number itself stays in the society's own register.",
+      "add": "Add to the roster",
+      "needAddress": "Enter a wallet address: 0x followed by 40 characters.",
+      "needIdentifier": "Enter the registration number."
+    }
+  },
+  "network": {
+    "title": "Network",
+    "lede": "The ledger underneath the ballots, and the machines that keep it.",
+    "error": {
+      "title": "Could not read the network",
+      "body": "{network} did not answer. Try again in a moment."
+    },
+    "chainId": "Chain ID",
+    "address": "Public address",
+    "height": "Latest block",
+    "latest": "Latest block arrived",
+    "blockTime": "Average time between blocks",
+    "peers": "Peers this node sees",
+    "fees": "Network fees",
+    "feesFree": "None. Members never need to hold any currency.",
+    "feesPaid": "Paid in {currency}.",
+    "idleNote": "When nobody is voting this network pauses between blocks, so a long gap is normal. A vote is included within a few seconds.",
+    "notQbft": "This network does not use QBFT consensus, so there is no validator list to show.",
+    "client": "Software on the proposer: {client}.",
+    "validators": {
+      "title": "Validators",
+      "body": "These {count} nodes take turns proposing blocks, and a block needs agreement from more than two thirds of them before it counts.",
+      "address": "Validator",
+      "proposed_one": "Blocks proposed in the last {count}",
+      "proposed_other": "Blocks proposed in the last {count}"
+    },
+    "blocks": {
+      "title": "Recent blocks",
+      "number": "Block",
+      "time": "Time",
+      "proposer": "Proposed by",
+      "transactions": "Transactions"
+    },
+    "contracts": {
+      "title": "Contracts",
+      "ballots": "Ballots",
+      "roster": "Roster",
+      "block": "Deployed in block {block}"
+    }
+  }
+}
