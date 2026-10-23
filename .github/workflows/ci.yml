@@ -1,9 +1,12 @@
 name: CI
 
-# Three jobs.
+# Four jobs.
 #   contracts     compile, size check, tests, and the nine-step demo on an in-process
 #                 chain. Fast; runs on every push and pull request.
 #   frontend      builds the dashboard and checks nothing private reaches the bundle.
+#   browser       drives the built dashboard in Chrome against a throwaway local chain:
+#                 every ballot state, voting, the officer desk, the in-browser wallet,
+#                 three languages, a 360px phone, keyboard use.
 #   besu-smoke    boots the real four-validator network in Docker, runs the demo and
 #                 the health check against it, takes a backup. Slow; runs on pushes to
 #                 main and on demand, because it needs Docker and a few minutes.
@@ -85,6 +88,25 @@ jobs:
             exit 1
           fi
           rm src/chain/directory.json
+
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm ci
+        working-directory: frontend
+
+      - name: The dashboard, in a real browser, against a real chain
+        run: npm run e2e
+        env:
+          E2E_CHANNEL: chrome
 
   besu-smoke:
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
