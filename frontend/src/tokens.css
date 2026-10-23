@@ -1,0 +1,47 @@
+:root {
+  /* spacing, type scale (ratio 1.2 from a 16px body), motion, stacking: the scaffold's scale */
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px; --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px; --space-3xl: 96px; --space-4xl: 144px;
+  --text-xs: 0.75rem; --text-sm: 0.875rem; --text-md: 1rem; --text-lg: 1.2rem; --text-xl: 1.44rem; --text-2xl: 1.728rem; --text-3xl: 2.074rem;
+  --text-display-s: 1.44rem; --text-display: 1.728rem; --text-section: 1.2rem; --text-title: 1rem; --text-lead: 1rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1); --ease-in: cubic-bezier(0.7, 0, 0.84, 0); --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
+  --z-base: 1; --z-raised: 10; --z-dropdown: 100; --z-sticky: 200; --z-sticky-nav: 300; --z-modal: 400; --z-toast: 500; --z-tooltip: 600;
+
+  /* the page itself: the ballot slip's paper, ink, madder and indigo, as OKLCH */
+  --color-paper: oklch(93.7% 0.010 119.6);
+  --color-paper-2: oklch(90.5% 0.012 120);
+  --color-paper-3: oklch(86.5% 0.014 122);
+  --color-surface: oklch(97.7% 0.007 115.7);
+  --color-ink: oklch(27.5% 0.020 190.9);
+  --color-ink-2: oklch(39.5% 0.020 181.8);
+  --color-muted: oklch(46.3% 0.020 169.6); /* was 56.5%: 3.75:1 on paper, now 4.6:1 or better on every surface */
+  --color-rule: oklch(84.4% 0.017 125.3);
+
+  --color-accent: oklch(44.5% 0.126 17.6); /* madder: the signal, for the one primary action and what is current */
+  --color-accent-ink: oklch(97.7% 0.007 115.7);
+  --color-seal: oklch(41.2% 0.092 260.1); /* indigo: what has been decided and made official */
+  --color-seal-ink: oklch(97.7% 0.007 115.7);
+  --color-focus: oklch(45% 0.19 20);
+  --color-error: oklch(49% 0.19 27);
+  --color-success: oklch(45.4% 0.12 150);
+
+  /* the top bar is the one dark surface; it swaps its own text and focus colours */
+  --color-bar: oklch(27.5% 0.020 190.9);
+  --color-bar-ink: oklch(93.7% 0.010 119.6);
+  --color-bar-muted: oklch(81% 0.015 158.2);
+  --color-bar-rule: oklch(45.3% 0.021 178.5);
+  --color-focus-on-bar: oklch(85% 0.10 20);
+  --color-scrim: oklch(27.5% 0.020 190.9 / 0.55); /* behind a dialog: an overlay, the one place alpha defines a colour */
+
+  /* type: Newsreader for heads, Public Sans for everything else; the Noto faces
+     carry Hindi and Tamil, which neither Latin face has, and load only when used */
+  --font-display: "Newsreader Variable", "Noto Sans Devanagari Variable", "Noto Sans Tamil Variable", Georgia, serif;
+  --font-body: "Public Sans Variable", "Noto Sans Devanagari Variable", "Noto Sans Tamil Variable", system-ui, sans-serif;
+  --font-outlier: var(--font-body);
+  --tracking-display: -0.01em;
+
+  --radius-card: 4px; --radius-input: 4px; --radius-pill: 999px; --rule-hair: 1px; --shadow-card: none;
+  --container: 76rem; --gutter: 40px; --gap-columns: 32px;
+  --measure: 40rem;
+  --control-h: 40px; --hit: 44px;
+}

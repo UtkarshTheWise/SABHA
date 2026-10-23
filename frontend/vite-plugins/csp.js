@@ -42,9 +42,9 @@ export function buildCsp({ rpcUrls = [], extraConnect = [] } = {}) {
   return [
     "default-src 'none'",
     "script-src 'self'",
-    // The dashboard still loads its two typefaces from Google Fonts.
-    "style-src 'self' https://fonts.googleapis.com",
-    "font-src https://fonts.gstatic.com",
+    // Typefaces are self-hosted, so styles and fonts come from the page itself and from nowhere else.
+    "style-src 'self'",
+    "font-src 'self'",
     "img-src 'self' data:",
     `connect-src 'self'${connect.length ? ` ${connect.join(" ")}` : ""}`,
     "manifest-src 'self'",

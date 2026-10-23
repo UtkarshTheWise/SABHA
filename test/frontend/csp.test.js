@@ -40,10 +40,11 @@ describe("the page's Content-Security-Policy", function () {
       expect(d["form-action"]).to.deep.equal(["'none'"]);
     });
 
-    it("allows the two typeface sources the dashboard still uses, and nothing else for styles and fonts", function () {
+    it("takes styles and fonts from the page itself and nowhere else, since the typefaces are self-hosted", function () {
       const d = directives(buildCsp());
-      expect(d["style-src"]).to.deep.equal(["'self'", "https://fonts.googleapis.com"]);
-      expect(d["font-src"]).to.deep.equal(["https://fonts.gstatic.com"]);
+      expect(d["style-src"]).to.deep.equal(["'self'"]);
+      expect(d["font-src"]).to.deep.equal(["'self'"]);
+      expect(buildCsp()).to.not.match(/google/i);
     });
   });
 

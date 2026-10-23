@@ -20,3 +20,5 @@ besu/.qbft-config.generated.json
 frontend/src/chain/networks/localhost.json
 frontend/src/chain/directory.json
 deployments/localhost.json
+
+frontend/.hallmark/shots/

@@ -1,0 +1,28 @@
+[
+ {
+  "shape": "app screen: ballot ledger with a ballot slip",
+  "theme": "custom",
+  "axes": "light/roman-serif/chromatic-red",
+  "hero": "none (app screen)",
+  "nav": "top bar of four destinations, a menu under 60rem",
+  "footer": "network facts and a one-line provenance note",
+  "imagery": "none; counts drawn as tally marks beside the figure",
+  "photos": [],
+  "entry": "ballots list",
+  "fingerprint": "app/ledger-list/slip",
+  "sections": [
+   "ballots",
+   "ballot",
+   "your votes",
+   "officer desk",
+   "network"
+  ],
+  "signature": "the tally, counts drawn as marks beside the figure",
+  "waived": [
+   "49b"
+  ],
+  "prompt": "Phase 2 of the Sabha repo: rebuild the voting dashboard, role-aware, three languages, 360px first",
+  "date": "2026-10-23",
+  "mode": "build"
+ }
+]
