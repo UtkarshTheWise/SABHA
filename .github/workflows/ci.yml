@@ -197,8 +197,8 @@ jobs:
         working-directory: besu
         run: |
           sudo env "PATH=$PATH" ./backup.sh "$RUNNER_TEMP/backup"
-          ls -l "$RUNNER_TEMP/backup"
-          test "$(ls "$RUNNER_TEMP/backup" | wc -l)" -eq 5
+          sudo ls -l "$RUNNER_TEMP/backup"
+          test "$(sudo ls "$RUNNER_TEMP/backup" | wc -l)" -eq 5
           node check-health.mjs http://127.0.0.1:8545 --admin http://127.0.0.1:8546
 
       - name: Logs (on failure)
