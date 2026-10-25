@@ -1,0 +1,28 @@
+{
+  "key": "besu",
+  "label": "Sabha network (Besu QBFT)",
+  "chainId": 40717,
+  "rpcUrl": "https://sabha-demo.duckdns.org",
+  "explorerUrl": null,
+  "zeroGas": true,
+  "currency": {
+    "name": "Sabha Gas",
+    "symbol": "SBH",
+    "decimals": 18
+  },
+  "logChunk": 5000,
+  "deployedAt": "2026-10-25T19:51:31.481Z",
+  "admin": "0x67BfcF3f2D8CfC3bd866f8dD04E117bCfe7953ce",
+  "contracts": {
+    "MemberRegistry": {
+      "address": "0x334BA616B8A468bCc52e8E840AFadC4305CeC829",
+      "txHash": "0x47061ce317234ea2f6ba9cd742333b48dd8c27f2d26d23c5539890fdb4a5a138",
+      "block": 3
+    },
+    "DirectDemocracy": {
+      "address": "0xD781e997c3137cb5e0563F41faC3C9D748c37E4D",
+      "txHash": "0x80f65a0c87ce05b74d3ba0c4749e9c7bfa5b52c816da245d36629c46f3e3d5c1",
+      "block": 4
+    }
+  }
+}
