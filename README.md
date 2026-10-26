@@ -149,6 +149,76 @@ Two tests are about trust rather than correctness: one asserts that the raw
 registration number is nowhere in the stored record, and one rebuilds the tally
 from event logs and compares it against the contract's own count.
 
+## The hosted demo
+
+| What | Address |
+| --- | --- |
+| Dashboard | https://sabha-three.vercel.app |
+| Public RPC (chain id 40717, gas is free) | https://sabha-demo.duckdns.org |
+
+Operating it is covered in [besu/DEPLOY.md](besu/DEPLOY.md) and
+[docs/DEPLOY_FRONTEND.md](docs/DEPLOY_FRONTEND.md); a presenter's walkthrough is in
+[docs/DEMO.md](docs/DEMO.md).
+
+## FAQ
+
+**How do I log in as an admin?**
+There is no username or password. A wallet is the login, and the contracts decide
+what it may do. The wallet that deployed the contracts holds the registrar,
+proposer and contract-admin roles. Click **Connect a wallet**, then under *Use a
+wallet on this device* choose **Restore from a backup file**, and load that
+wallet's keystore. The panel then says "Holds an officer role" and **Officer
+desk** works.
+
+**How do I add a member to the ledger?**
+1. The member opens the dashboard, clicks **Connect a wallet**, uses **Create a
+   wallet**, downloads the backup file and copies their `0x…` address. A wallet
+   app such as MetaMask works as well.
+2. An officer opens **Officer desk → Roster → Add a member**, pastes the address
+   and the registration number, and clicks **Add to the roster**. Only a hash of
+   the number reaches the chain.
+3. The transaction costs nothing on the hosted network. The member can vote on
+   any ballot opened after this.
+
+Members can be suspended and reinstated from the same tab.
+
+**Why can't a new member vote on a ballot that is already open?**
+The electorate and quorum are fixed when a ballot is created. Add people first,
+then open the ballot.
+
+**Who can sign in on the demo?**
+The members `seed` enrols get throwaway addresses derived from `DEMO_MNEMONIC`.
+Only wallets whose keys you hold can sign in, so export keystores for the ones you
+want to demonstrate with, or add new people as above. Anyone holding the officer's
+keystore and passphrase controls the demo chain, so do not share them.
+
+**A transaction fails with "refused it, and gave no reason".**
+Check that the ballot is still open and that your wallet is on the roster.
+
+**The dashboard says it cannot reach the network, but `curl` works.**
+The dashboard's address is missing from `FRONTEND_ORIGINS` in `besu/.env` on the
+server. Add it and run `docker compose up -d rpc-gate`.
+
+**The chain has produced no blocks for a minute.**
+That is normal when nobody is voting. It pauses between blocks
+(`BESU_EMPTY_BLOCK_SECONDS`, 60 by default), and a transaction is included within
+about two seconds.
+
+**Will a wallet app accept a transaction with no gas?**
+The dashboard sends gas price zero on this network, but wallet apps differ in how
+they treat a network with no currency. Try the phones you will demo on first.
+
+**Is this really decentralised?**
+Not in the demo. Four validators on one machine are one operator, and one machine
+is one point of failure. The consensus is real, but the protection the design
+describes needs each office bearer to run their own validator
+([besu/DEPLOY.md](besu/DEPLOY.md) explains how). The Sepolia deployment path
+([docs/DEPLOY_SEPOLIA.md](docs/DEPLOY_SEPOLIA.md)) stays up when the machine does not.
+
+**Where are the backups?**
+`besu/backup.sh` writes them on the server, nightly in the demo's cron. Copy them
+off the machine; the validator keys are the part that cannot be replaced.
+
 ## Known gaps
 
 Kept here rather than in the report, because they are the honest list.
