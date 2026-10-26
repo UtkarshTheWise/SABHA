@@ -22,3 +22,6 @@ frontend/src/chain/directory.json
 deployments/localhost.json
 
 frontend/.hallmark/shots/
+
+# Throwaway demo keystores for the hosted network
+demo-wallets/
